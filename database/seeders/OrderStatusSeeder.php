@@ -9,7 +9,7 @@ class OrderStatusSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('order_statuses')->insert([
+        DB::table('order_statuses')->upsert([
             [
                 'id'    => 1,
                 'title' => 'Новые',
@@ -22,8 +22,8 @@ class OrderStatusSeeder extends Seeder
             ],
             [
                 'id'    => 3,
-                'title' => 'Перенос',
-                'color' => '#F2C94C',
+                'title' => 'Ждёт проверку',
+                'color' => '#9B59B6',
             ],
             [
                 'id'    => 4,
@@ -32,9 +32,14 @@ class OrderStatusSeeder extends Seeder
             ],
             [
                 'id'    => 5,
+                'title' => 'Перенос',
+                'color' => '#F2C94C',
+            ],
+            [
+                'id'    => 6,
                 'title' => 'Отменено',
                 'color' => '#EB5757',
             ],
-        ]);
+        ], ['id'], ['title', 'color']);
     }
 }

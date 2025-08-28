@@ -1,0 +1,503 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Courier API",
+    "version": "1.0.0",
+    "description": "Документация API для Courier Admin"
+  },
+  "servers": [
+    {"url": "/", "description": "Local server"}
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "bank_id": {"type": "integer"},
+          "product": {"type": "string"},
+          "name": {"type": "string"},
+          "surname": {"type": "string"},
+          "patronymic": {"type": "string"},
+          "phone": {"type": "string"},
+          "address": {"type": "string"},
+          "delivery_at": {"type": "string", "format": "date"},
+          "deliveried_at": {"type": "string", "format": "date", "nullable": true},
+          "courier_id": {"type": "integer", "nullable": true},
+          "order_status_id": {"type": "integer"},
+          "note": {"type": "string", "nullable": true},
+          "declined_reason": {"type": "string", "nullable": true},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "OrderCreate": {
+        "type": "object",
+        "required": ["bank_id", "product", "name", "surname", "patronymic", "phone", "address", "delivery_at"],
+        "properties": {
+          "bank_id": {"type": "integer"},
+          "product": {"type": "string"},
+          "name": {"type": "string"},
+          "surname": {"type": "string"},
+          "patronymic": {"type": "string"},
+          "phone": {"type": "string"},
+          "address": {"type": "string"},
+          "delivery_at": {"type": "string", "format": "date"},
+          "courier_id": {"type": "integer", "nullable": true},
+          "note": {"type": "string", "nullable": true},
+          "declined_reason": {"type": "string", "nullable": true}
+        }
+      },
+      "OrderUpdate": {
+        "type": "object",
+        "required": ["bank_id", "product", "name", "surname", "patronymic", "phone", "address", "delivery_at", "order_status_id"],
+        "properties": {
+          "bank_id": {"type": "integer"},
+          "product": {"type": "string"},
+          "name": {"type": "string"},
+          "surname": {"type": "string"},
+          "patronymic": {"type": "string"},
+          "phone": {"type": "string"},
+          "address": {"type": "string"},
+          "delivery_at": {"type": "string", "format": "date"},
+          "deliveried_at": {"type": "string", "format": "date", "nullable": true},
+          "courier_id": {"type": "integer", "nullable": true},
+          "order_status_id": {"type": "integer"},
+          "note": {"type": "string", "nullable": true},
+          "declined_reason": {"type": "string", "nullable": true}
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string", "nullable": true},
+          "role": {"type": "string", "enum": ["admin", "manager", "courier", "bank"]},
+          "bank_id": {"type": "integer", "nullable": true},
+          "is_active": {"type": "boolean"},
+          "note": {"type": "string", "nullable": true},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "required": ["name", "email", "password", "role"],
+        "properties": {
+          "name": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "password": {"type": "string"},
+          "phone": {"type": "string", "nullable": true},
+          "role": {"type": "string", "enum": ["admin", "manager", "courier", "bank"]},
+          "bank_id": {"type": "integer", "nullable": true},
+          "is_active": {"type": "boolean"},
+          "note": {"type": "string", "nullable": true}
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "required": ["name", "email", "role"],
+        "properties": {
+          "name": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string", "nullable": true},
+          "role": {"type": "string", "enum": ["admin", "manager", "courier", "bank"]},
+          "bank_id": {"type": "integer", "nullable": true},
+          "is_active": {"type": "boolean"},
+          "note": {"type": "string", "nullable": true},
+          "password": {"type": "string", "nullable": true}
+        }
+      },
+      "Bank": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "phone": {"type": "string", "nullable": true},
+          "email": {"type": "string", "format": "email", "nullable": true},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "BankCreate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string"},
+          "phone": {"type": "string", "nullable": true},
+          "email": {"type": "string", "format": "email", "nullable": true}
+        }
+      },
+      "BankUpdate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string"},
+          "phone": {"type": "string", "nullable": true},
+          "email": {"type": "string", "format": "email", "nullable": true}
+        }
+      },
+      "OrderStatus": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "title": {"type": "string"},
+          "color": {"type": "string", "nullable": true},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "OrderStatusCreate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string"},
+          "color": {"type": "string", "nullable": true}
+        }
+      },
+      "OrderStatusUpdate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string"},
+          "color": {"type": "string", "nullable": true}
+        }
+      }
+    }
+  },
+  "security": [{"bearerAuth": []}],
+  "paths": {
+    "/api/login": {
+      "post": {
+        "summary": "Вход пользователя (JWT)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string"}
+                }
+              },
+              "example": {"email": "admin@test.ru", "password": "password"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный вход",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {"type": "string"},
+                    "user": {"$ref": "#/components/schemas/User"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {"description": "Неверный логин или пароль"},
+          "403": {"description": "Курьер не может войти"}
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "summary": "Выход пользователя (JWT)",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {"description": "Выход выполнен"}
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "summary": "Получить список заказов",
+        "parameters": [
+          {"name": "search", "in": "query", "schema": {"type": "string"}},
+          {"name": "bank_id", "in": "query", "schema": {"type": "integer"}},
+          {"name": "order_status_id", "in": "query", "schema": {"type": "integer"}},
+          {"name": "courier_id", "in": "query", "schema": {"oneOf": [ {"type": "integer"}, {"type": "string", "enum": ["none"]} ], "nullable": true}, "description": "ID курьера для фильтрации. Если не указан — фильтрация не применяется. Если 'none' — только без курьера."},
+          {"name": "delivery_at", "in": "query", "schema": {"type": "string", "format": "date"}},
+          {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date"}},
+          {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Order"}}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать заказ",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/OrderCreate"}
+            }
+          }
+        },
+        "responses": {
+          "201": {"description": "Заказ создан", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}}
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "summary": "Получить заказ по ID",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Успешно", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}}}
+      },
+      "put": {
+        "summary": "Обновить заказ",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderUpdate"}}}},
+        "responses": {"200": {"description": "Обновлено", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}}}
+      },
+      "delete": {
+        "summary": "Удалить заказ",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {"description": "Удалено"}}
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "Список пользователей",
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/User"}}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "post": {
+        "summary": "Создать пользователя",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserCreate"}}}},
+        "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "summary": "Получить пользователя по ID",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "put": {
+        "summary": "Обновить пользователя",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserUpdate"}}}},
+        "responses": {"200": {"description": "Обновлено", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "delete": {
+        "summary": "Удалить пользователя",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {"description": "Удалено"}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/banks": {
+      "get": {
+        "summary": "Список банков",
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Bank"}}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "post": {
+        "summary": "Создать банк",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BankCreate"}}}},
+        "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Bank"}}}}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/banks/{id}": {
+      "get": {
+        "summary": "Получить банк по ID",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Bank"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "put": {
+        "summary": "Обновить банк",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BankUpdate"}}}},
+        "responses": {"200": {"description": "Обновлено", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Bank"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "delete": {
+        "summary": "Удалить банк",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {"description": "Удалено"}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/order-statuses": {
+      "get": {
+        "summary": "Список статусов заказа",
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/OrderStatus"}}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "post": {
+        "summary": "Создать статус заказа",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatusCreate"}}}},
+        "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatus"}}}}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/order-statuses/{id}": {
+      "get": {
+        "summary": "Получить статус заказа по ID",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatus"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "put": {
+        "summary": "Обновить статус заказа",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatusUpdate"}}}},
+        "responses": {"200": {"description": "Обновлено", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatus"}}}}},
+        "security": [{"bearerAuth": []}]
+      },
+      "delete": {
+        "summary": "Удалить статус заказа",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {"description": "Удалено"}},
+        "security": [{"bearerAuth": []}]
+      }
+    },
+    "/api/orders/{id}/status": {
+      "patch": {
+        "summary": "Сменить статус заказа",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["order_status_id"],
+                "properties": {
+                  "order_status_id": {"type": "integer"},
+                  "declined_reason": {"type": "string", "nullable": true},
+                  "delivery_at": {"type": "string", "format": "date", "nullable": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Статус изменён", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}},
+          "422": {"description": "Ошибка валидации"}
+        }
+      }
+    },
+    "/api/orders/{id}/activity-log": {
+      "get": {
+        "summary": "История изменений заказа",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}
+        ],
+        "responses": {
+          "200": {"description": "История изменений", "content": {"application/json": {"schema": {"type": "array", "items": {"type": "object"}}}}},
+          "403": {"description": "Нет доступа к логам"}
+        }
+      }
+    },
+    "/api/banks/{id}/activity-log": {
+      "get": {
+        "summary": "История изменений банка",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}
+        ],
+        "responses": {
+          "200": {"description": "История изменений", "content": {"application/json": {"schema": {"type": "array", "items": {"type": "object"}}}}},
+          "403": {"description": "Нет доступа к логам"}
+        }
+      }
+    },
+    "/api/order-statuses/{id}/activity-log": {
+      "get": {
+        "summary": "История изменений статуса заказа",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}
+        ],
+        "responses": {
+          "200": {"description": "История изменений", "content": {"application/json": {"schema": {"type": "array", "items": {"type": "object"}}}}},
+          "403": {"description": "Нет доступа к логам"}
+        }
+      }
+    },
+    "/api/users/{id}/activity-log": {
+      "get": {
+        "summary": "История изменений пользователя",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}
+        ],
+        "responses": {
+          "200": {"description": "История изменений", "content": {"application/json": {"schema": {"type": "array", "items": {"type": "object"}}}}},
+          "403": {"description": "Нет доступа к логам"}
+        }
+      }
+    },
+    "/api/activity-logs/batch": {
+      "get": {
+        "summary": "Групповое получение истории изменений по id",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "log_name", "in": "query", "required": true, "schema": {"type": "string", "enum": ["order", "user", "bank", "order_status"]}},
+          {"name": "ids", "in": "query", "required": true, "schema": {"type": "array", "items": {"type": "integer"}}, "style": "form", "explode": false}
+        ],
+        "responses": {
+          "200": {"description": "История изменений по id", "content": {"application/json": {"schema": {"type": "object"}}}}
+        }
+      }
+    },
+    "/api/orders/import-excel": {
+      "post": {
+        "summary": "Импорт заказов из Excel",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {"type": "string", "format": "binary"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Импорт завершён"},
+          "422": {"description": "Ошибка валидации"}
+        }
+      }
+    }
+  }
+}

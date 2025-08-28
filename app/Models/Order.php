@@ -4,24 +4,40 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
 
     protected $fillable = [
         'bank_id',
         'product',
-        'client_name',
-        'client_phone',
-        'client_address',
+        'name',
+        'surname',
+        'patronymic',
+        'phone',
+        'address',
         'delivery_at',
         'deliveried_at',
         'courier_id',
         'order_status_id',
         'note',
         'declined_reason',
+        'order_number',
+    ];
+
+    protected $casts = [
+        'name' => 'encrypted',
+        'surname' => 'encrypted',
+        'patronymic' => 'encrypted',
+        'phone' => 'encrypted',
+        'address' => 'encrypted',
+        'product' => 'encrypted',
+        'note' => 'encrypted',
+        'declined_reason' => 'encrypted',
     ];
 
     public function bank()
@@ -35,5 +51,87 @@ class Order extends Model
     public function status()
     {
         return $this->belongsTo(OrderStatus::class, 'order_status_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'bank_id',
+                'product',
+                'name',
+                'surname',
+                'patronymic',
+                'phone',
+                'address',
+                'delivery_at',
+                'deliveried_at',
+                'courier_id',
+                'order_status_id',
+                'note',
+                'declined_reason',
+                'order_number',
+            ])
+            ->useLogName('order')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function getDescriptionForEvent(string $eventName): string
+    {
+        return "Заказ был {$this->eventNameToRus($eventName)}";
+    }
+
+    protected function eventNameToRus($event)
+    {
+        return match ($event) {
+            'created' => 'создан',
+            'updated' => 'обновлён',
+            'deleted' => 'удалён',
+            default   => $event,
+        };
+    }
+
+    /**
+     * Генерирует уникальный номер заказа для банка
+     */
+    public function generateOrderNumber()
+    {
+        if (!$this->bank) {
+            return null;
+        }
+
+        $prefix = $this->bank->order_prefix ?: substr($this->bank->name, 0, 2);
+        $prefix = strtoupper(preg_replace('/[^A-Za-zА-Яа-я]/', '', $prefix));
+        
+        // Получаем последний номер заказа для этого банка
+        $lastOrder = self::where('bank_id', $this->bank_id)
+            ->whereNotNull('order_number')
+            ->orderByRaw('CAST(SUBSTRING(order_number, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
+            ->first();
+
+        if ($lastOrder && $lastOrder->order_number) {
+            // Извлекаем номер из последнего заказа
+            $lastNumber = (int) preg_replace('/[^0-9]/', '', $lastOrder->order_number);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Boot метод для автоматической генерации номера при создании
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($order) {
+            if (!$order->order_number) {
+                $order->order_number = $order->generateOrderNumber();
+            }
+        });
     }
 }
