@@ -31,7 +31,7 @@ return [
              * The middleware that is applied to the route.
              */
             'middleware' => [
-                'web',
+                'api',
                 EnsureUserIsAuthorized::class,
             ],
 

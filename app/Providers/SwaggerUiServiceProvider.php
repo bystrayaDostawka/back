@@ -10,10 +10,17 @@ class SwaggerUiServiceProvider extends ServiceProvider
     public function boot() : void
     {
         Gate::define('viewSwaggerUI', function ($user = null) {
-            return in_array(optional($user)->email, [
-                'admin@test.ru',
-                'manager@test.ru',
-            ]);
+            // Если пользователь авторизован через JWT
+            if ($user && $user->email) {
+                return in_array($user->email, [
+                    'admin@test.ru',
+                    'manager@test.ru',
+                ]);
+            }
+
+            // Если нет авторизованного пользователя, разрешаем доступ
+            // (можно изменить на false для более строгой безопасности)
+            return true;
         });
     }
 }
