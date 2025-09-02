@@ -11,7 +11,8 @@ class SwaggerUiServiceProvider extends ServiceProvider
     {
         Gate::define('viewSwaggerUI', function ($user = null) {
             return in_array(optional($user)->email, [
-                //
+                'admin@test.ru',
+                'manager@test.ru',
             ]);
         });
     }
