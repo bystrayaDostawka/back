@@ -101,7 +101,7 @@ class OrderController extends Controller
         }
 
         $order = $this->ordersRepository->updateItem($id, $data);
-        return response()->json($order);
+        return response()->json($order->load('photos'));
     }
 
     public function destroy($id)
@@ -265,5 +265,80 @@ class OrderController extends Controller
                 'failures' => $e->failures()
             ], 422);
         }
+    }
+
+    // Методы для мобильного приложения курьеров
+    public function courierOrders(Request $request)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $filters = [
+            'courier_id' => $user->id,
+            'search' => $request->query('search'),
+            'order_status_id' => $request->query('order_status_id'),
+            'delivery_at' => $request->query('delivery_at'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ];
+
+        $result = $this->ordersRepository->getItems($user, $filters);
+        return response()->json($result);
+    }
+
+    public function courierOrderShow($id)
+    {
+        $user = request()->user();
+
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = $this->ordersRepository->findItem($id);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        // Загружаем фотографии
+        $order->load('photos');
+
+        return response()->json($order);
+    }
+
+    public function courierUpdateStatus(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = $this->ordersRepository->findItem($id);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $request->validate([
+            'order_status_id' => 'required|exists:order_statuses,id',
+            'note' => 'nullable|string',
+        ]);
+
+        $data = $request->only(['order_status_id', 'note']);
+
+        // Если статус "Завершено", устанавливаем дату доставки
+        if ($data['order_status_id'] == 4) {
+            $data['deliveried_at'] = now();
+        }
+
+        $order = $this->ordersRepository->updateItem($id, $data);
+        return response()->json($order->load('photos'));
     }
 }

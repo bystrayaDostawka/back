@@ -53,6 +53,11 @@ class Order extends Model
         return $this->belongsTo(OrderStatus::class, 'order_status_id');
     }
 
+    public function photos()
+    {
+        return $this->hasMany(OrderPhoto::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -103,7 +108,7 @@ class Order extends Model
 
         $prefix = $this->bank->order_prefix ?: substr($this->bank->name, 0, 2);
         $prefix = strtoupper(preg_replace('/[^A-Za-zА-Яа-я]/', '', $prefix));
-        
+
         // Получаем последний номер заказа для этого банка
         $lastOrder = self::where('bank_id', $this->bank_id)
             ->whereNotNull('order_number')

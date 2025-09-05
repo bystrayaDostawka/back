@@ -139,4 +139,50 @@ class UserController extends Controller
         });
         return response()->json($result);
     }
+
+    // Методы для мобильного приложения курьеров
+    public function courierProfile()
+    {
+        $user = request()->user();
+
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'is_active' => $user->is_active,
+            'note' => $user->note,
+        ]);
+    }
+
+    public function courierUpdateProfile(Request $request)
+    {
+        $user = request()->user();
+
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'phone' => 'sometimes|string|max:20',
+            'note' => 'sometimes|nullable|string',
+        ]);
+
+        $data = $request->only(['name', 'phone', 'note']);
+        $user->update($data);
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'is_active' => $user->is_active,
+            'note' => $user->note,
+        ]);
+    }
 }

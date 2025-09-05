@@ -8,7 +8,7 @@ class OrdersRepository
 {
     public function getItems($user, $filters = [])
     {
-        $query = Order::with(['bank', 'courier', 'status']);
+        $query = Order::with(['bank', 'courier', 'status', 'photos']);
 
         if ($user->role === 'bank') {
             $query->where('bank_id', $user->bank_id);
@@ -79,19 +79,19 @@ class OrdersRepository
     {
         $data['order_status_id'] = 1;
         $order = Order::create($data);
-        return $order->load(['bank', 'courier', 'status']);
+        return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
     public function findItem($id)
     {
-        return Order::with(['bank', 'courier', 'status'])->findOrFail($id);
+        return Order::with(['bank', 'courier', 'status', 'photos'])->findOrFail($id);
     }
 
     public function updateItem($id, array $data)
     {
         $order = Order::findOrFail($id);
         $order->update($data);
-        return $order->load(['bank', 'courier', 'status']);
+        return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
     public function deleteItem($id)

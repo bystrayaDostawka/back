@@ -7,12 +7,15 @@ use App\Http\Controllers\Api\BankController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderStatusController;
 use App\Http\Controllers\Api\StatisticsController;
+use App\Http\Controllers\Api\OrderPhotoController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\AuthController;
 
 Route::post('login', [AuthController::class, 'login']);
+Route::post('mobile/login', [AuthController::class, 'mobileLogin']);
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+Route::post('mobile/logout', [AuthController::class, 'mobileLogout'])->middleware('auth:api');
 
 // Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 //     return $request->user();
@@ -23,6 +26,7 @@ Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api')
 //     return response()->json(['message' => 'Выход выполнен']);
 // });
 
+// Админские маршруты (только для admin, manager, bank)
 Route::middleware('auth:api')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('banks', BankController::class);
@@ -37,9 +41,28 @@ Route::middleware('auth:api')->group(function () {
     Route::get('order-statuses/{id}/activity-log', [\App\Http\Controllers\Api\OrderStatusController::class, 'activityLog']);
     Route::get('users/{id}/activity-log', [\App\Http\Controllers\Api\UserController::class, 'activityLog']);
     Route::get('activity-logs/batch', [\App\Http\Controllers\Api\ActivityLogController::class, 'batch']);
-    
+
     // Статистика
     Route::get('statistics/orders', [StatisticsController::class, 'getOrderStatistics']);
     Route::get('statistics/couriers', [StatisticsController::class, 'getCourierStatistics']);
     Route::get('statistics/dashboard', [StatisticsController::class, 'getDashboardStats']);
+
+    // Фотографии заказов (для админки)
+    Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
+});
+
+// Мобильные маршруты для курьеров
+Route::prefix('mobile')->middleware('auth:api')->group(function () {
+    // Только заказы курьера
+    Route::get('orders', [OrderController::class, 'courierOrders']);
+    Route::get('orders/{order}', [OrderController::class, 'courierOrderShow']);
+    Route::patch('orders/{order}/status', [OrderController::class, 'courierUpdateStatus']);
+    Route::get('order-statuses', [OrderStatusController::class, 'courierOrderStatuses']);
+    Route::get('profile', [UserController::class, 'courierProfile']);
+    Route::patch('profile', [UserController::class, 'courierUpdateProfile']);
+
+    // Фотографии заказов
+    Route::post('orders/{order}/photos', [OrderPhotoController::class, 'upload']);
+    Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
+    Route::delete('orders/{order}/photos/{photo}', [OrderPhotoController::class, 'destroy']);
 });

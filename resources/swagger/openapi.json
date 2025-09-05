@@ -8,6 +8,16 @@
   "servers": [
     {"url": "/", "description": "Local server"}
   ],
+  "tags": [
+    {
+      "name": "Web Admin",
+      "description": "API для веб-админки (admin, manager, bank)"
+    },
+    {
+      "name": "Mobile App - Courier",
+      "description": "API для мобильного приложения курьеров"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -35,7 +45,12 @@
           "note": {"type": "string", "nullable": true},
           "declined_reason": {"type": "string", "nullable": true},
           "created_at": {"type": "string", "format": "date-time"},
-          "updated_at": {"type": "string", "format": "date-time"}
+          "updated_at": {"type": "string", "format": "date-time"},
+          "photos": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/OrderPhoto"},
+            "description": "Фотографии посылки"
+          }
         }
       },
       "OrderCreate": {
@@ -171,6 +186,65 @@
           "title": {"type": "string"},
           "color": {"type": "string", "nullable": true}
         }
+      },
+      "CourierProfile": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "email": {"type": "string", "format": "email"},
+          "phone": {"type": "string", "nullable": true},
+          "is_active": {"type": "boolean"},
+          "note": {"type": "string", "nullable": true}
+        }
+      },
+      "CourierProfileUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "phone": {"type": "string", "nullable": true},
+          "note": {"type": "string", "nullable": true}
+        }
+      },
+      "OrderStatusUpdateMobile": {
+        "type": "object",
+        "required": ["order_status_id"],
+        "properties": {
+          "order_status_id": {"type": "integer"},
+          "note": {"type": "string", "nullable": true}
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {"type": "string", "format": "email"},
+          "password": {"type": "string"}
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {"type": "string"},
+          "user": {"$ref": "#/components/schemas/User"}
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {"type": "string"}
+        }
+      },
+      "OrderPhoto": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "order_id": {"type": "integer"},
+          "file_path": {"type": "string"},
+          "url": {"type": "string"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
       }
     }
   },
@@ -178,6 +252,7 @@
   "paths": {
     "/api/login": {
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Вход пользователя (JWT)",
         "requestBody": {
           "required": true,
@@ -217,6 +292,7 @@
     },
     "/api/logout": {
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Выход пользователя (JWT)",
         "security": [{"bearerAuth": []}],
         "responses": {
@@ -226,6 +302,7 @@
     },
     "/api/orders": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Получить список заказов",
         "parameters": [
           {"name": "search", "in": "query", "schema": {"type": "string"}},
@@ -248,6 +325,7 @@
         }
       },
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Создать заказ",
         "requestBody": {
           "required": true,
@@ -264,17 +342,20 @@
     },
     "/api/orders/{id}": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Получить заказ по ID",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"200": {"description": "Успешно", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}}}
       },
       "put": {
+        "tags": ["Web Admin"],
         "summary": "Обновить заказ",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderUpdate"}}}},
         "responses": {"200": {"description": "Обновлено", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Order"}}}}}
       },
       "delete": {
+        "tags": ["Web Admin"],
         "summary": "Удалить заказ",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"204": {"description": "Удалено"}}
@@ -282,11 +363,13 @@
     },
     "/api/users": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Список пользователей",
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/User"}}}}}},
         "security": [{"bearerAuth": []}]
       },
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Создать пользователя",
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserCreate"}}}},
         "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}},
@@ -295,12 +378,14 @@
     },
     "/api/users/{id}": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Получить пользователя по ID",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}}},
         "security": [{"bearerAuth": []}]
       },
       "put": {
+        "tags": ["Web Admin"],
         "summary": "Обновить пользователя",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserUpdate"}}}},
@@ -308,6 +393,7 @@
         "security": [{"bearerAuth": []}]
       },
       "delete": {
+        "tags": ["Web Admin"],
         "summary": "Удалить пользователя",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"204": {"description": "Удалено"}},
@@ -316,11 +402,13 @@
     },
     "/api/banks": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Список банков",
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Bank"}}}}}},
         "security": [{"bearerAuth": []}]
       },
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Создать банк",
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BankCreate"}}}},
         "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Bank"}}}}},
@@ -329,12 +417,14 @@
     },
     "/api/banks/{id}": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Получить банк по ID",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Bank"}}}}},
         "security": [{"bearerAuth": []}]
       },
       "put": {
+        "tags": ["Web Admin"],
         "summary": "Обновить банк",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BankUpdate"}}}},
@@ -342,6 +432,7 @@
         "security": [{"bearerAuth": []}]
       },
       "delete": {
+        "tags": ["Web Admin"],
         "summary": "Удалить банк",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"204": {"description": "Удалено"}},
@@ -350,11 +441,13 @@
     },
     "/api/order-statuses": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Список статусов заказа",
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/OrderStatus"}}}}}},
         "security": [{"bearerAuth": []}]
       },
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Создать статус заказа",
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatusCreate"}}}},
         "responses": {"201": {"description": "Создано", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatus"}}}}},
@@ -363,12 +456,14 @@
     },
     "/api/order-statuses/{id}": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Получить статус заказа по ID",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"200": {"description": "ОК", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatus"}}}}},
         "security": [{"bearerAuth": []}]
       },
       "put": {
+        "tags": ["Web Admin"],
         "summary": "Обновить статус заказа",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/OrderStatusUpdate"}}}},
@@ -376,6 +471,7 @@
         "security": [{"bearerAuth": []}]
       },
       "delete": {
+        "tags": ["Web Admin"],
         "summary": "Удалить статус заказа",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
         "responses": {"204": {"description": "Удалено"}},
@@ -384,6 +480,7 @@
     },
     "/api/orders/{id}/status": {
       "patch": {
+        "tags": ["Web Admin"],
         "summary": "Сменить статус заказа",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -413,6 +510,7 @@
     },
     "/api/orders/{id}/activity-log": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "История изменений заказа",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -426,6 +524,7 @@
     },
     "/api/banks/{id}/activity-log": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "История изменений банка",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -439,6 +538,7 @@
     },
     "/api/order-statuses/{id}/activity-log": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "История изменений статуса заказа",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -452,6 +552,7 @@
     },
     "/api/users/{id}/activity-log": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "История изменений пользователя",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -465,6 +566,7 @@
     },
     "/api/activity-logs/batch": {
       "get": {
+        "tags": ["Web Admin"],
         "summary": "Групповое получение истории изменений по id",
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -478,6 +580,7 @@
     },
     "/api/orders/import-excel": {
       "post": {
+        "tags": ["Web Admin"],
         "summary": "Импорт заказов из Excel",
         "security": [{"bearerAuth": []}],
         "requestBody": {
@@ -496,6 +599,467 @@
         "responses": {
           "200": {"description": "Импорт завершён"},
           "422": {"description": "Ошибка валидации"}
+        }
+      }
+    },
+    "/api/orders/{id}/photos": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Получить фотографии заказа",
+        "description": "Получение всех фотографий заказа для просмотра в админке.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Список фотографий заказа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/OrderPhoto"}
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/login": {
+      "post": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Вход курьера в мобильное приложение",
+        "description": "Аутентификация для курьеров в мобильном приложении. Доступ разрешен только пользователям с ролью 'courier'.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/LoginRequest"},
+              "example": {"email": "courier@test.ru", "password": "password"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный вход",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/LoginResponse"}
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный логин или пароль",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ разрешен только для курьеров",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/logout": {
+      "post": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Выход курьера из мобильного приложения",
+        "description": "Выход из системы для курьеров в мобильном приложении.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Выход выполнен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить список заказов курьера",
+        "description": "Получение списка заказов, назначенных текущему курьеру. Автоматически фильтруется по courier_id.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "search", "in": "query", "schema": {"type": "string"}, "description": "Поиск по имени клиента, адресу, телефону"},
+          {"name": "order_status_id", "in": "query", "schema": {"type": "integer"}, "description": "Фильтр по статусу заказа"},
+          {"name": "delivery_at", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Фильтр по дате доставки"},
+          {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата начала периода"},
+          {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата окончания периода"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Список заказов курьера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {"type": "array", "items": {"$ref": "#/components/schemas/Order"}},
+                    "current_page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "total": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders/{id}": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить детали заказа курьера",
+        "description": "Получение детальной информации о заказе. Курьер может видеть только свои заказы.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Детали заказа",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Order"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders/{id}/status": {
+      "patch": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Обновить статус заказа курьера",
+        "description": "Обновление статуса заказа курьером. При установке статуса 'Завершено' автоматически устанавливается дата доставки.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/OrderStatusUpdateMobile"},
+              "example": {"order_status_id": 2, "note": "Заказ принят в работу"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Статус обновлен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Order"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/profile": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить профиль курьера",
+        "description": "Получение профиля текущего курьера.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Профиль курьера",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/CourierProfile"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Обновить профиль курьера",
+        "description": "Обновление профиля курьера. Курьер может изменить только свои данные.",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CourierProfileUpdate"},
+              "example": {"name": "Новое имя", "phone": "+7 900 123 45 67", "note": "Примечание"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Профиль обновлен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/CourierProfile"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/order-statuses": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить список статусов заказов",
+        "description": "Получение списка всех доступных статусов заказов для курьера.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Список статусов заказов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/OrderStatus"}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders/{id}/photos": {
+      "post": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Загрузить фотографию заказа",
+        "description": "Загрузка фотографии посылки курьером. Только для заказов, назначенных текущему курьеру.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photo": {"type": "string", "format": "binary", "description": "Фотография посылки (jpeg, png, jpg, max 5MB)"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Фотография загружена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "url": {"type": "string"},
+                    "created_at": {"type": "string", "format": "date-time"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации файла",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить фотографии заказа",
+        "description": "Получение всех фотографий заказа курьером.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Список фотографий заказа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/OrderPhoto"}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders/{order}/photos/{photo}": {
+      "delete": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Удалить фотографию заказа",
+        "description": "Удаление фотографии заказа курьером. Только для своих заказов.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "photo", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID фотографии"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Фотография удалена",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ или фотография не найдены",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
         }
       }
     }

@@ -96,4 +96,17 @@ class OrderStatusController extends Controller
         });
         return response()->json($result);
     }
+
+    // Метод для мобильного приложения курьеров
+    public function courierOrderStatuses()
+    {
+        $user = request()->user();
+
+        if (!$user->hasRole('courier')) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $statuses = $this->orderStatusesRepository->getItems($user);
+        return response()->json($statuses);
+    }
 }
