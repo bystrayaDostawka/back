@@ -11,11 +11,19 @@ use App\Http\Controllers\Api\OrderPhotoController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MobileAuthController;
 
 Route::post('login', [AuthController::class, 'login']);
-Route::post('mobile/login', [AuthController::class, 'mobileLogin']);
+Route::post('mobile/login', [MobileAuthController::class, 'login']);
+
+// Добавляем GET маршрут login для обработки ошибок аутентификации
+Route::get('login', function () {
+    return response()->json(['message' => 'Unauthorized'], 401);
+})->name('login');
+Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api');
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
-Route::post('mobile/logout', [AuthController::class, 'mobileLogout'])->middleware('auth:api');
+Route::post('mobile/logout', [MobileAuthController::class, 'logout'])->middleware('auth:api');
+Route::get('mobile/me', [MobileAuthController::class, 'me'])->middleware('auth:api');
 
 // Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 //     return $request->user();

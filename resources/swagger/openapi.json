@@ -39,7 +39,7 @@
           "phone": {"type": "string"},
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
-          "deliveried_at": {"type": "string", "format": "date", "nullable": true},
+          "delivered_at": {"type": "string", "format": "date", "nullable": true},
           "courier_id": {"type": "integer", "nullable": true},
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true},
@@ -82,7 +82,7 @@
           "phone": {"type": "string"},
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
-          "deliveried_at": {"type": "string", "format": "date", "nullable": true},
+          "delivered_at": {"type": "string", "format": "date", "nullable": true},
           "courier_id": {"type": "integer", "nullable": true},
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true},
@@ -297,6 +297,51 @@
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {"description": "Выход выполнен"}
+        }
+      }
+    },
+    "/api/refresh": {
+      "post": {
+        "tags": ["Web Admin", "Mobile App - Courier"],
+        "summary": "Обновление JWT токена",
+        "description": "Обновляет JWT токен для продления сессии. Работает для всех типов пользователей.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Токен успешно обновлен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Новый JWT токен"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный или истекший токен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Токен истек"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -685,6 +730,50 @@
         "responses": {
           "200": {
             "description": "Выход выполнен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/me": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить информацию о текущем курьере",
+        "description": "Возвращает информацию о текущем авторизованном курьере.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Информация о курьере",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone": {"type": "string", "nullable": true},
+                    "is_active": {"type": "boolean"},
+                    "note": {"type": "string", "nullable": true}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неавторизован",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (не курьер)",
             "content": {
               "application/json": {
                 "schema": {"$ref": "#/components/schemas/MessageResponse"}

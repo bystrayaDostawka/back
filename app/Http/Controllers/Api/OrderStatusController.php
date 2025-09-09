@@ -63,7 +63,7 @@ class OrderStatusController extends Controller
     public function activityLog($id)
     {
         $user = request()->user();
-        if (!$user->hasRole('admin')) {
+        if ($user->role !== 'admin') {
             return response()->json(['message' => 'Нет доступа к логам'], 403);
         }
         $logs = Activity::where('log_name', 'order_status')
@@ -102,7 +102,7 @@ class OrderStatusController extends Controller
     {
         $user = request()->user();
 
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('phone');
             $table->text('address');
             $table->dateTime('delivery_at');
-            $table->dateTime('deliveried_at')->nullable();
+            $table->dateTime('delivered_at')->nullable();
             $table->foreignId('courier_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('order_status_id')->constrained('order_statuses')->onDelete('cascade');
             $table->text('note')->nullable();

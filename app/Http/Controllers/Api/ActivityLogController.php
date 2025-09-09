@@ -63,7 +63,7 @@ class ActivityLogController extends Controller
                 'courier_id' => 'Курьер',
                 'bank_id' => 'Банк',
                 'delivery_at' => 'Дата доставки',
-                'deliveried_at' => 'Дата доставки',
+                'delivered_at' => 'Дата доставки',
                 'declined_reason' => 'Причина отмены',
                 'product' => 'Продукт',
                 'name' => 'Имя',
@@ -105,7 +105,7 @@ class ActivityLogController extends Controller
         } elseif ($key === 'bank_id') {
             $oldVal = $old ? \App\Models\Bank::find($old)?->name : null;
             $newVal = $new ? \App\Models\Bank::find($new)?->name : null;
-        } elseif (in_array($key, ['delivery_at', 'deliveried_at'])) {
+        } elseif (in_array($key, ['delivery_at', 'delivered_at'])) {
             $oldVal = $old ? Carbon::parse($old)->format('d.m.Y H:i') : null;
             $newVal = $new ? Carbon::parse($new)->format('d.m.Y H:i') : null;
         } elseif ($key === 'role') {
