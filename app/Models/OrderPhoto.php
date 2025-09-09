@@ -51,6 +51,6 @@ class OrderPhoto extends Model
     // Получить полный URL к файлу
     public function getUrlAttribute()
     {
-        return asset('storage/' . $this->file_path);
+        return config('app.url') . '/storage/' . $this->file_path;
     }
 }

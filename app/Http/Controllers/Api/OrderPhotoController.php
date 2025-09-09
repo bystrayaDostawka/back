@@ -17,7 +17,7 @@ class OrderPhotoController extends Controller
         $user = $request->user();
 
         // Проверяем, что пользователь - курьер
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -70,7 +70,7 @@ class OrderPhotoController extends Controller
         $user = request()->user();
 
         // Проверяем, что пользователь - курьер
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 

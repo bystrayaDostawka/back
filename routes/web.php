@@ -16,3 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Добавляем маршрут login для обработки ошибок аутентификации
+Route::get('/login', function () {
+    return response()->json(['message' => 'Unauthorized'], 401);
+})->name('login');

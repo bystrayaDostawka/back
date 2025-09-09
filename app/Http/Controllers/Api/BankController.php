@@ -62,7 +62,7 @@ class BankController extends Controller
     public function activityLog($id)
     {
         $user = request()->user();
-        if (!$user->hasRole('admin')) {
+        if ($user->role !== 'admin') {
             return response()->json(['message' => 'Нет доступа к логам'], 403);
         }
         $logs = Activity::where('log_name', 'bank')

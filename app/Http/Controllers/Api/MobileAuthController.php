@@ -7,54 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\JWT;
 
-class AuthController extends Controller
+class MobileAuthController extends Controller
 {
     public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'bank_access_key' => 'nullable|string',
-        ]);
-
-        if (!$token = JWTAuth::attempt($credentials)) {
-            return response()->json(['message' => 'Неверный логин или пароль'], 401);
-        }
-
-        $user = Auth::user();
-
-        // Запретить логин для курьера
-        if ($user->role === 'courier') {
-            return response()->json(['message' => 'Курьер не может войти в веб-админку'], 403);
-        }
-
-        // Проверка банковского ключа для банковских пользователей
-        if ($user->hasRole('bank')) {
-            $bankKey = $request->input('bank_access_key');
-
-            if (!$bankKey) {
-                return response()->json(['message' => 'Требуется ключ доступа для банковского пользователя'], 400);
-            }
-
-            if (!$user->isBankKeyValid($bankKey)) {
-                return response()->json(['message' => 'Неверный или истекший ключ доступа'], 401);
-            }
-        }
-
-        return response()->json([
-            'token' => $token,
-            'user'  => $user,
-        ]);
-    }
-
-    public function logout()
-    {
-        JWTAuth::invalidate(JWTAuth::getToken());
-        return response()->json(['message' => 'Вы вышли из системы']);
-    }
-
-    public function mobileLogin(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
@@ -72,13 +29,16 @@ class AuthController extends Controller
             return response()->json(['message' => 'Доступ разрешен только для курьеров'], 403);
         }
 
+        // Используем стандартный токен с увеличенным временем жизни (7 дней)
+        $token = JWTAuth::fromUser($user);
+
         return response()->json([
             'token' => $token,
             'user'  => $user,
         ]);
     }
 
-    public function mobileLogout()
+    public function logout()
     {
         JWTAuth::invalidate(JWTAuth::getToken());
         return response()->json(['message' => 'Вы вышли из мобильного приложения']);
@@ -99,5 +59,10 @@ class AuthController extends Controller
         } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
             return response()->json(['message' => 'Неверный токен'], 401);
         }
+    }
+
+    public function me()
+    {
+        return response()->json(Auth::user());
     }
 }

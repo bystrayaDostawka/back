@@ -33,7 +33,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if ($user->hasRole('manager') && $request->input('role') === 'admin') {
+        if ($user->role === 'manager' && $request->input('role') === 'admin') {
             return response()->json(['message' => 'Менеджер не может создавать админов'], 403);
         }
         $data = $request->validate([
@@ -97,7 +97,7 @@ class UserController extends Controller
     public function activityLog($id)
     {
         $user = request()->user();
-        if (!$user->hasRole('admin')) {
+        if ($user->role !== 'admin') {
             return response()->json(['message' => 'Нет доступа к логам'], 403);
         }
         $logs = Activity::where('log_name', 'user')
@@ -155,7 +155,7 @@ class UserController extends Controller
     {
         $user = request()->user();
 
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -173,7 +173,7 @@ class UserController extends Controller
     {
         $user = request()->user();
 
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 

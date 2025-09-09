@@ -31,7 +31,7 @@ class OrderFactory extends Factory
             'phone'           => $this->faker->phoneNumber(),
             'address'         => $this->faker->address(),
             'delivery_at'     => $this->faker->dateTimeBetween('now', '+30 days'),
-            'deliveried_at'   => $statusId == 4 ? $this->faker->dateTimeBetween('-30 days', 'now') : null, // Заполняем только для завершенных
+            'delivered_at'   => $statusId == 4 ? $this->faker->dateTimeBetween('-30 days', 'now') : null, // Заполняем только для завершенных
             'courier_id'      => $courier ? $courier->id : null,
             'order_status_id' => $status ? $status->id : 1,
             'note'            => $this->faker->optional()->sentence(),

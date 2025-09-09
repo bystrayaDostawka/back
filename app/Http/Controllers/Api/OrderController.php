@@ -83,7 +83,7 @@ class OrderController extends Controller
             'phone'           => 'required|string|max:255',
             'address'         => 'required|string|max:255',
             'delivery_at'     => 'required|date',
-            'deliveried_at'   => 'nullable|date',
+            'delivered_at'   => 'nullable|date',
             'courier_id'      => 'nullable|exists:users,id',
             'order_status_id' => 'required|exists:order_statuses,id',
             'note'            => 'nullable|string',
@@ -178,7 +178,7 @@ class OrderController extends Controller
     public function activityLog($id)
     {
         $user = request()->user();
-        if ($user->hasRole('bank') || $user->hasRole('manager') || $user->hasRole('courier')) {
+        if ($user->role === 'bank' || $user->role === 'manager' || $user->role === 'courier') {
             return response()->json(['message' => 'Нет доступа к логам'], 403);
         }
         $logs = Activity::where('log_name', 'order')
@@ -200,7 +200,7 @@ class OrderController extends Controller
                     'order_status_id' => 'Статус',
                     'courier_id' => 'Курьер',
                     'bank_id' => 'Банк',
-                    'delivery_at', 'deliveried_at' => 'Дата доставки',
+                    'delivery_at', 'delivered_at' => 'Дата доставки',
                     'declined_reason' => 'Причина отмены',
                     'product' => 'Продукт',
                     'name' => 'Имя',
@@ -221,7 +221,7 @@ class OrderController extends Controller
                 } elseif ($key === 'bank_id') {
                     $oldVal = $old ? Bank::find($old)?->name : null;
                     $newVal = $new ? Bank::find($new)?->name : null;
-                } elseif (in_array($key, ['delivery_at', 'deliveried_at'])) {
+                } elseif (in_array($key, ['delivery_at', 'delivered_at'])) {
                     $oldVal = $old ? Carbon::parse($old)->format('d.m.Y H:i') : null;
                     $newVal = $new ? Carbon::parse($new)->format('d.m.Y H:i') : null;
                 } else {
@@ -243,7 +243,7 @@ class OrderController extends Controller
     public function importFromExcel(Request $request)
     {
         $user = $request->user();
-        if (!$user->hasRole('bank') && !$user->hasRole('admin')) {
+        if ($user->role !== 'bank' && $user->role !== 'admin') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -273,7 +273,7 @@ class OrderController extends Controller
         $user = $request->user();
 
         // Проверяем, что пользователь - курьер
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -294,7 +294,7 @@ class OrderController extends Controller
     {
         $user = request()->user();
 
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -315,7 +315,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole('courier')) {
+        if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
@@ -335,7 +335,7 @@ class OrderController extends Controller
 
         // Если статус "Завершено", устанавливаем дату доставки
         if ($data['order_status_id'] == 4) {
-            $data['deliveried_at'] = now();
+            $data['delivered_at'] = now();
         }
 
         $order = $this->ordersRepository->updateItem($id, $data);

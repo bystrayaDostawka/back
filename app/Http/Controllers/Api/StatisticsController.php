@@ -38,7 +38,7 @@ class StatisticsController extends Controller
         // Применяем фильтр по времени
         if ($period !== 'all') {
             if ($period === 'custom' && $from && $to) {
-                $query->whereBetween('deliveried_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
+                $query->whereBetween('delivered_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
             } else {
                 $this->applyDateFilter($query, $period);
             }
