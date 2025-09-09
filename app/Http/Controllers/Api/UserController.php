@@ -45,9 +45,17 @@ class UserController extends Controller
             'bank_id'   => 'nullable|exists:banks,id',
             'is_active' => 'boolean',
             'note'      => 'nullable|string',
+            'bank_access_key' => 'nullable|string|max:255',
+            'bank_key_expires_at' => 'nullable|date',
         ]);
 
         $user = $this->usersRepository->createItem($data);
+
+        // Генерируем банковский ключ для банковских пользователей, если не указан вручную
+        if ($user->role === 'bank' && !$user->bank_access_key) {
+            $user->generateBankAccessKey();
+        }
+
         return response()->json($user, 201);
     }
 
@@ -68,6 +76,8 @@ class UserController extends Controller
             'is_active' => 'boolean',
             'note'      => 'nullable|string',
             'password'  => 'nullable|string|min:6',
+            'bank_access_key' => 'nullable|string|max:255',
+            'bank_key_expires_at' => 'nullable|date',
         ]);
 
         $user = $this->usersRepository->updateItem($id, $data);
@@ -183,6 +193,24 @@ class UserController extends Controller
             'phone' => $user->phone,
             'is_active' => $user->is_active,
             'note' => $user->note,
+        ]);
+    }
+
+    public function regenerateBankKey($id)
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role !== 'bank') {
+            return response()->json(['message' => 'Только для банковских пользователей'], 400);
+        }
+
+        $newKey = $user->generateBankAccessKey();
+
+        return response()->json([
+            'message' => 'Ключ доступа обновлен',
+            'bank_access_key' => $newKey,
+            'bank_key_expires_at' => $user->bank_key_expires_at,
+            'days_left' => $user->getBankKeyDaysLeft()
         ]);
     }
 }

@@ -40,6 +40,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('orders/{id}/activity-log', [\App\Http\Controllers\Api\OrderController::class, 'activityLog']);
     Route::get('order-statuses/{id}/activity-log', [\App\Http\Controllers\Api\OrderStatusController::class, 'activityLog']);
     Route::get('users/{id}/activity-log', [\App\Http\Controllers\Api\UserController::class, 'activityLog']);
+    Route::post('users/{id}/regenerate-bank-key', [\App\Http\Controllers\Api\UserController::class, 'regenerateBankKey']);
     Route::get('activity-logs/batch', [\App\Http\Controllers\Api\ActivityLogController::class, 'batch']);
 
     // Статистика

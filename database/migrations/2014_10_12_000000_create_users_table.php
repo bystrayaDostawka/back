@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->enum('role', ['admin', 'manager', 'courier', 'bank'])->default('courier');
             $table->foreignId('bank_id')->nullable()->constrained('banks')->onDelete('cascade');
+            $table->string('bank_access_key')->nullable();
+            $table->timestamp('bank_key_expires_at')->nullable();
             $table->boolean('is_active')->default(true);
             $table->text('note')->nullable();
             $table->rememberToken();
@@ -24,6 +26,7 @@ return new class extends Migration
             $table->index('bank_id');
             $table->index('role');
             $table->index('is_active');
+            $table->index('bank_access_key');
         });
     }
 

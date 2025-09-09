@@ -15,6 +15,7 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+            'bank_access_key' => 'nullable|string',
         ]);
 
         if (!$token = JWTAuth::attempt($credentials)) {
@@ -26,6 +27,19 @@ class AuthController extends Controller
         // Запретить логин для курьера
         if ($user->hasRole('courier')) {
             return response()->json(['message' => 'Курьер не может войти в веб-админку'], 403);
+        }
+
+        // Проверка банковского ключа для банковских пользователей
+        if ($user->hasRole('bank')) {
+            $bankKey = $request->input('bank_access_key');
+
+            if (!$bankKey) {
+                return response()->json(['message' => 'Требуется ключ доступа для банковского пользователя'], 400);
+            }
+
+            if (!$user->isBankKeyValid($bankKey)) {
+                return response()->json(['message' => 'Неверный или истекший ключ доступа'], 401);
+            }
         }
 
         return response()->json([
