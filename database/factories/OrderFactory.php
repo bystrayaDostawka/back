@@ -22,8 +22,8 @@ class OrderFactory extends Factory
         $statusId = $this->faker->randomElement([1, 2, 3, 4, 5, 6]); // Все возможные статусы
         $status = OrderStatus::find($statusId) ?: OrderStatus::first();
 
-        // Русские имена и фамилии
-        $russianNames = [
+        // Русские имена (мужские и женские отдельно)
+        $maleNames = [
             'Александр',
             'Алексей',
             'Андрей',
@@ -63,7 +63,10 @@ class OrderFactory extends Factory
             'Станислав',
             'Степан',
             'Фёдор',
-            'Юрий',
+            'Юрий'
+        ];
+
+        $femaleNames = [
             'Анна',
             'Валентина',
             'Вера',
@@ -90,7 +93,8 @@ class OrderFactory extends Factory
             'Яна'
         ];
 
-        $russianSurnames = [
+        // Русские фамилии (мужские и женские формы)
+        $maleSurnames = [
             'Иванов',
             'Петров',
             'Сидоров',
@@ -125,15 +129,49 @@ class OrderFactory extends Factory
             'Романов',
             'Воробьёв',
             'Сергеев',
-            'Королёв',
-            'Соколов',
-            'Морозов',
-            'Петров',
-            'Волков',
-            'Смирнов'
+            'Королёв'
         ];
 
-        $russianPatronymics = [
+        $femaleSurnames = [
+            'Иванова',
+            'Петрова',
+            'Сидорова',
+            'Смирнова',
+            'Кузнецова',
+            'Попова',
+            'Васильева',
+            'Соколова',
+            'Михайлова',
+            'Новикова',
+            'Фёдорова',
+            'Морозова',
+            'Волкова',
+            'Алексеева',
+            'Лебедева',
+            'Семёнова',
+            'Егорова',
+            'Павлова',
+            'Козлова',
+            'Степанова',
+            'Николаева',
+            'Орлова',
+            'Андреева',
+            'Макарова',
+            'Никитина',
+            'Захарова',
+            'Зайцева',
+            'Соловьёва',
+            'Борисова',
+            'Яковлева',
+            'Григорьева',
+            'Романова',
+            'Воробьёва',
+            'Сергеева',
+            'Королёва'
+        ];
+
+        // Мужские отчества
+        $malePatronymics = [
             'Александрович',
             'Алексеевич',
             'Андреевич',
@@ -173,7 +211,11 @@ class OrderFactory extends Factory
             'Станиславович',
             'Степанович',
             'Фёдорович',
-            'Юрьевич',
+            'Юрьевич'
+        ];
+
+        // Женские отчества
+        $femalePatronymics = [
             'Александровна',
             'Алексеевна',
             'Андреевна',
@@ -216,12 +258,25 @@ class OrderFactory extends Factory
             'Юрьевна'
         ];
 
+        // Выбираем пол случайно
+        $isMale = $this->faker->boolean();
+
+        if ($isMale) {
+            $name = $this->faker->randomElement($maleNames);
+            $surname = $this->faker->randomElement($maleSurnames);
+            $patronymic = $this->faker->randomElement($malePatronymics);
+        } else {
+            $name = $this->faker->randomElement($femaleNames);
+            $surname = $this->faker->randomElement($femaleSurnames);
+            $patronymic = $this->faker->randomElement($femalePatronymics);
+        }
+
         return [
             'bank_id'         => $bank ? $bank->id : null,
             'product'         => $this->faker->randomElement(['Карта', 'Вклад', 'Кредит', 'Страхование']),
-            'name'            => $this->faker->randomElement($russianNames),
-            'surname'         => $this->faker->randomElement($russianSurnames),
-            'patronymic'      => $this->faker->randomElement($russianPatronymics),
+            'name'            => $name,
+            'surname'         => $surname,
+            'patronymic'      => $patronymic,
             'phone'           => $this->faker->phoneNumber(),
             'address'         => $this->faker->address(),
             'delivery_at'     => $this->faker->dateTimeBetween('now', '+30 days'),
