@@ -70,6 +70,9 @@ Route::middleware('auth:api')->group(function () {
 
 // Мобильные маршруты для курьеров
 Route::prefix('mobile')->middleware('auth:api')->group(function () {
+    // Дашборд курьера
+    Route::get('dashboard', [StatisticsController::class, 'getCourierDashboardStats']);
+
     // Только заказы курьера
     Route::get('orders', [OrderController::class, 'courierOrders']);
     Route::get('orders/{order}', [OrderController::class, 'courierOrderShow']);

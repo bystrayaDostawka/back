@@ -94,16 +94,16 @@ class StatisticsController extends Controller
             DB::raw('DATE(created_at) as date'),
             DB::raw('COUNT(*) as count')
         )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('date')
-        ->orderBy('date')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'date' => $item->date,
-                'count' => $item->count
-            ];
-        });
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'count' => $item->count
+                ];
+            });
     }
 
     private function getWeeklyStatistics($query)
@@ -114,16 +114,16 @@ class StatisticsController extends Controller
             DB::raw('YEARWEEK(created_at, 1) as week'),
             DB::raw('COUNT(*) as count')
         )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('week')
-        ->orderBy('week')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'week' => $item->week,
-                'count' => $item->count
-            ];
-        });
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('week')
+            ->orderBy('week')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'week' => $item->week,
+                    'count' => $item->count
+                ];
+            });
     }
 
     private function getMonthlyStatistics($query)
@@ -134,16 +134,16 @@ class StatisticsController extends Controller
             DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
             DB::raw('COUNT(*) as count')
         )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'month' => $item->month,
-                'count' => $item->count
-            ];
-        });
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'month' => $item->month,
+                    'count' => $item->count
+                ];
+            });
     }
 
     private function getYearlyStatistics($query)
@@ -154,16 +154,16 @@ class StatisticsController extends Controller
             DB::raw('YEAR(created_at) as year'),
             DB::raw('COUNT(*) as count')
         )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('year')
-        ->orderBy('year')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'year' => $item->year,
-                'count' => $item->count
-            ];
-        });
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('year')
+            ->orderBy('year')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'year' => $item->year,
+                    'count' => $item->count
+                ];
+            });
     }
 
     private function getCustomStatistics($query, $from, $to)
@@ -172,16 +172,16 @@ class StatisticsController extends Controller
             DB::raw('DATE(created_at) as date'),
             DB::raw('COUNT(*) as count')
         )
-        ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
-        ->groupBy('date')
-        ->orderBy('date')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'date' => $item->date,
-                'count' => $item->count
-            ];
-        });
+            ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'count' => $item->count
+                ];
+            });
     }
 
     public function getCourierStatistics(Request $request)
@@ -202,7 +202,7 @@ class StatisticsController extends Controller
             }
 
             $query = Order::where('courier_id', $courier->id)
-                         ->where('order_status_id', 4); // Завершено
+                ->where('order_status_id', 4); // Завершено
 
             // Фильтр по банку если указан
             if ($bankId) {
@@ -303,6 +303,110 @@ class StatisticsController extends Controller
         ];
 
         Log::info('Dashboard stats result', $result);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Получить статистику дашборда для курьера (мобильное приложение)
+     */
+    public function getCourierDashboardStats(Request $request)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $period = $request->get('period', 'today'); // today, this_week, this_month, this_year, all
+        $from = $request->get('from');
+        $to = $request->get('to');
+
+        Log::info('Courier dashboard stats request', [
+            'courier_id' => $user->id,
+            'period' => $period,
+            'from' => $from,
+            'to' => $to
+        ]);
+
+        // Создаем базовый запрос для заказов курьера
+        $baseQuery = Order::where('courier_id', $user->id);
+
+        // Общая статистика (все время)
+        $totalOrders = (clone $baseQuery)->count();
+        $completedOrders = (clone $baseQuery)->where('order_status_id', 4)->count(); // Завершено
+        $pendingOrders = (clone $baseQuery)->whereIn('order_status_id', [1, 2, 3])->count(); // Новые, Принято в работу, ждёт проверку
+        $cancelledOrders = (clone $baseQuery)->where('order_status_id', 6)->count(); // Отменено
+        $postponedOrders = (clone $baseQuery)->where('order_status_id', 5)->count(); // Перенос
+
+        // Статистика за выбранный период
+        $periodQuery = (clone $baseQuery);
+        if ($period !== 'all') {
+            if ($period === 'custom' && $from && $to) {
+                $periodQuery->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
+            } else {
+                $this->applyDateFilterForCreated($periodQuery, $period);
+            }
+        }
+
+        $periodOrders = $periodQuery->count();
+        $periodCompleted = (clone $periodQuery)->where('order_status_id', 4)->count(); // Завершено
+        $periodCancelled = (clone $periodQuery)->where('order_status_id', 6)->count(); // Отменено
+        $periodPostponed = (clone $periodQuery)->where('order_status_id', 5)->count(); // Перенос
+        $periodPendingVerification = (clone $periodQuery)->where('order_status_id', 3)->count(); // Ждёт проверку
+        $periodInWork = (clone $periodQuery)->where('order_status_id', 2)->count(); // В работе
+
+        // Вычисляем процент выполнения за период
+        $activeOrders = $periodOrders - $periodCancelled;
+        $completionRate = $activeOrders > 0 ? round(($periodCompleted / $activeOrders) * 100) : 0;
+
+        // Статистика по статусам за период
+        $statusStats = [
+            'new' => (clone $periodQuery)->where('order_status_id', 1)->count(), // Новые
+            'in_work' => $periodInWork, // В работе
+            'pending_verification' => $periodPendingVerification, // Ждёт проверку
+            'completed' => $periodCompleted, // Выполнено
+            'postponed' => $periodPostponed, // Перенос
+            'cancelled' => $periodCancelled // Отменено
+        ];
+
+        $result = [
+            // Общая статистика
+            'total_orders' => $totalOrders,
+            'completed_orders' => $completedOrders,
+            'pending_orders' => $pendingOrders,
+            'cancelled_orders' => $cancelledOrders,
+            'postponed_orders' => $postponedOrders,
+
+            // Статистика за период
+            'period_orders' => $periodOrders,
+            'period_completed' => $periodCompleted,
+            'period_cancelled' => $periodCancelled,
+            'period_postponed' => $periodPostponed,
+            'period_pending_verification' => $periodPendingVerification,
+            'period_in_work' => $periodInWork,
+
+            // Процент выполнения
+            'completion_rate' => $completionRate,
+
+            // Детальная статистика по статусам
+            'status_stats' => $statusStats,
+
+            // Информация о курьере
+            'courier' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email
+            ],
+
+            // Период
+            'period' => $period,
+            'period_from' => $from,
+            'period_to' => $to
+        ];
+
+        Log::info('Courier dashboard stats result', $result);
 
         return response()->json($result);
     }

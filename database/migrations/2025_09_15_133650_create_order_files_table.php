@@ -13,7 +13,19 @@ return new class extends Migration
     {
         Schema::create('order_files', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('order_id');
+            $table->string('file_name');
+            $table->string('file_path');
+            $table->string('file_type');
+            $table->string('mime_type');
+            $table->bigInteger('file_size');
+            $table->unsignedBigInteger('uploaded_by');
             $table->timestamps();
+
+            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            $table->foreign('uploaded_by')->references('id')->on('users')->onDelete('cascade');
+
+            $table->index(['order_id', 'uploaded_by']);
         });
     }
 

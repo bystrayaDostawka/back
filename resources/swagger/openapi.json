@@ -245,6 +245,65 @@
           "created_at": {"type": "string", "format": "date-time"},
           "updated_at": {"type": "string", "format": "date-time"}
         }
+      },
+      "OrderFile": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "order_id": {"type": "integer"},
+          "file_name": {"type": "string"},
+          "file_type": {"type": "string"},
+          "file_size": {"type": "integer"},
+          "formatted_size": {"type": "string"},
+          "url": {"type": "string"},
+          "uploader": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "integer"},
+              "name": {"type": "string"}
+            }
+          },
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "CourierDashboardStats": {
+        "type": "object",
+        "properties": {
+          "total_orders": {"type": "integer", "description": "Всего заказов у курьера"},
+          "completed_orders": {"type": "integer", "description": "Выполнено заказов"},
+          "pending_orders": {"type": "integer", "description": "В ожидании"},
+          "cancelled_orders": {"type": "integer", "description": "Отменено"},
+          "postponed_orders": {"type": "integer", "description": "Перенос"},
+          "period_orders": {"type": "integer", "description": "Новых заказов за период"},
+          "period_completed": {"type": "integer", "description": "Выполнено за период"},
+          "period_cancelled": {"type": "integer", "description": "Отменено за период"},
+          "period_postponed": {"type": "integer", "description": "Перенос за период"},
+          "period_pending_verification": {"type": "integer", "description": "Ждёт проверку за период"},
+          "period_in_work": {"type": "integer", "description": "В работе за период"},
+          "completion_rate": {"type": "integer", "description": "Процент выполнения заказов за период"},
+          "status_stats": {
+            "type": "object",
+            "properties": {
+              "new": {"type": "integer", "description": "Новые"},
+              "in_work": {"type": "integer", "description": "В работе"},
+              "pending_verification": {"type": "integer", "description": "Ждёт проверку"},
+              "completed": {"type": "integer", "description": "Выполнено"},
+              "postponed": {"type": "integer", "description": "Перенос"},
+              "cancelled": {"type": "integer", "description": "Отменено"}
+            }
+          },
+          "courier": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "integer"},
+              "name": {"type": "string"},
+              "email": {"type": "string"}
+            }
+          },
+          "period": {"type": "string", "description": "Выбранный период"},
+          "period_from": {"type": "string", "nullable": true, "description": "Дата начала периода"},
+          "period_to": {"type": "string", "nullable": true, "description": "Дата окончания периода"}
+        }
       }
     }
   },
@@ -1143,6 +1202,251 @@
           },
           "404": {
             "description": "Заказ или фотография не найдены",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/dashboard": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить статистику дашборда курьера",
+        "description": "Получение статистики по заказам курьера для мобильного дашборда. Показывает общую статистику и статистику за выбранный период с процентом выполнения.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "period", "in": "query", "schema": {"type": "string", "enum": ["today", "this_week", "this_month", "this_year", "all", "custom"]}, "description": "Период для статистики", "example": "today"},
+          {"name": "from", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата начала (для custom периода)", "example": "2024-01-01"},
+          {"name": "to", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата окончания (для custom периода)", "example": "2024-01-31"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Статистика дашборда курьера",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/CourierDashboardStats"},
+                "example": {
+                  "total_orders": 50,
+                  "completed_orders": 13,
+                  "pending_orders": 17,
+                  "cancelled_orders": 11,
+                  "postponed_orders": 9,
+                  "period_orders": 50,
+                  "period_completed": 13,
+                  "period_cancelled": 11,
+                  "period_postponed": 9,
+                  "period_pending_verification": 4,
+                  "period_in_work": 6,
+                  "completion_rate": 33,
+                  "status_stats": {
+                    "new": 7,
+                    "in_work": 6,
+                    "pending_verification": 4,
+                    "completed": 13,
+                    "postponed": 9,
+                    "cancelled": 11
+                  },
+                  "courier": {
+                    "id": 3,
+                    "name": "Курьер",
+                    "email": "courier@test.ru"
+                  },
+                  "period": "today",
+                  "period_from": null,
+                  "period_to": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (не курьер)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order}/files": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Получить файлы заказа",
+        "description": "Получение всех файлов заказа для просмотра в админке.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Список файлов заказа",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/OrderFile"}
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Web Admin"],
+        "summary": "Загрузить файл заказа",
+        "description": "Загрузка файла к заказу. Доступно для всех ролей кроме курьеров.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {"type": "string", "format": "binary", "description": "Файл для загрузки (pdf, doc, docx, xls, xlsx, jpg, png, max 10MB)"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Файл загружен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/OrderFile"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (курьеры не могут загружать файлы)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации файла",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order}/files/{file}": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Получить информацию о файле заказа",
+        "description": "Получение детальной информации о файле заказа.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "file", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о файле",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/OrderFile"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ или файл не найдены",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Web Admin"],
+        "summary": "Удалить файл заказа",
+        "description": "Удаление файла заказа. Доступно для всех ролей кроме курьеров.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "file", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Файл удален",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (курьеры не могут удалять файлы)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ или файл не найдены",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order}/files/{file}/download": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Скачать файл заказа",
+        "description": "Скачивание файла заказа.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "file", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Файл для скачивания",
+            "content": {
+              "application/octet-stream": {
+                "schema": {"type": "string", "format": "binary"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ или файл не найдены",
             "content": {
               "application/json": {
                 "schema": {"$ref": "#/components/schemas/MessageResponse"}
