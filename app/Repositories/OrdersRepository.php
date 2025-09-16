@@ -82,21 +82,55 @@ class OrdersRepository
         return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
-    public function findItem($id)
+    public function findItem($id, $user = null)
     {
-        return Order::with(['bank', 'courier', 'status', 'photos'])->findOrFail($id);
+        $order = Order::with(['bank', 'courier', 'status', 'photos'])->findOrFail($id);
+        
+        // Проверка прав доступа
+        if ($user) {
+            if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+            if ($user->role === 'courier' && $order->courier_id !== $user->id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+        }
+        
+        return $order;
     }
 
-    public function updateItem($id, array $data)
+    public function updateItem($id, array $data, $user = null)
     {
         $order = Order::findOrFail($id);
+        
+        // Проверка прав доступа
+        if ($user) {
+            if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+            if ($user->role === 'courier' && $order->courier_id !== $user->id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+        }
+        
         $order->update($data);
         return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
-    public function deleteItem($id)
+    public function deleteItem($id, $user = null)
     {
         $order = Order::findOrFail($id);
+        
+        // Проверка прав доступа
+        if ($user) {
+            if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+            if ($user->role === 'courier' && $order->courier_id !== $user->id) {
+                abort(403, 'Нет доступа к этому заказу');
+            }
+        }
+        
         return $order->delete();
     }
 

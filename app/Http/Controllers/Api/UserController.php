@@ -46,7 +46,7 @@ class UserController extends Controller
             'is_active' => 'boolean',
             'note'      => 'nullable|string',
             'bank_access_key' => 'nullable|string|max:255',
-            'bank_key_expires_at' => 'nullable|date',
+            'bank_key_expires_at' => 'nullable|date_format:Y-m-d H:i:s',
         ]);
 
         $user = $this->usersRepository->createItem($data);
@@ -67,21 +67,38 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email,' . $id,
-            'phone'     => ['nullable', 'regex:/^\\+?[0-9]{10,15}$/'],
-            'role'      => ['required', Rule::in(['admin', 'manager', 'courier', 'bank'])],
-            'bank_id'   => 'nullable|exists:banks,id',
-            'is_active' => 'boolean',
-            'note'      => 'nullable|string',
-            'password'  => 'nullable|string|min:6',
-            'bank_access_key' => 'nullable|string|max:255',
-            'bank_key_expires_at' => 'nullable|date',
-        ]);
+        try {
+            $data = $request->validate([
+                'name'      => 'required|string|max:255',
+                'email'     => 'required|email|unique:users,email,' . $id,
+                'phone'     => ['nullable', 'regex:/^\\+?[0-9]{10,15}$/'],
+                'role'      => ['required', Rule::in(['admin', 'manager', 'courier', 'bank'])],
+                'bank_id'   => 'nullable|exists:banks,id',
+                'is_active' => 'boolean',
+                'note'      => 'nullable|string',
+                'password'  => 'nullable|string|min:6',
+                'bank_access_key' => 'nullable|string|max:255',
+                'bank_key_expires_at' => 'nullable|date',
+            ]);
 
-        $user = $this->usersRepository->updateItem($id, $data);
-        return response()->json($user);
+            $user = $this->usersRepository->updateItem($id, $data);
+            return response()->json($user);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error updating user', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error updating user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy($id)

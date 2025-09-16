@@ -71,11 +71,11 @@ class OrderController extends Controller
 
     public function update(Request $request, $id)
     {
-        $order = $this->ordersRepository->findItem($id);
+        $user = $request->user();
+        $order = $this->ordersRepository->findItem($id, $user);
         $this->authorize('update', $order);
-
-        $data = $request->validate([
-            'bank_id'         => 'required|exists:banks,id',
+        
+        $validationRules = [
             'product'         => 'required|string|max:255',
             'name'            => 'required|string|max:255',
             'surname'         => 'required|string|max:255',
@@ -84,11 +84,27 @@ class OrderController extends Controller
             'address'         => 'required|string|max:255',
             'delivery_at'     => 'required|date',
             'delivered_at'   => 'nullable|date',
-            'courier_id'      => 'nullable|exists:users,id',
             'order_status_id' => 'required|exists:order_statuses,id',
             'note'            => 'nullable|string',
             'declined_reason' => 'nullable|string',
-        ]);
+        ];
+        
+        // Для банковских пользователей bank_id и courier_id необязательны при редактировании
+        if ($user->role !== 'bank') {
+            $validationRules['bank_id'] = 'required|exists:banks,id';
+            $validationRules['courier_id'] = 'nullable|exists:users,id';
+        } else {
+            $validationRules['bank_id'] = 'nullable|exists:banks,id';
+            $validationRules['courier_id'] = 'nullable|exists:users,id';
+        }
+        
+        $data = $request->validate($validationRules);
+
+        // Для банковских пользователей при редактировании не изменяем bank_id и courier_id
+        if ($user->role === 'bank') {
+            unset($data['bank_id']);
+            unset($data['courier_id']);
+        }
 
         // Проверка на Перенос или Отменено
         if (in_array($data['order_status_id'], [5, 6])) {
@@ -100,16 +116,17 @@ class OrderController extends Controller
             }
         }
 
-        $order = $this->ordersRepository->updateItem($id, $data);
+        $order = $this->ordersRepository->updateItem($id, $data, $user);
         return response()->json($order->load('photos'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $order = $this->ordersRepository->findItem($id);
+        $user = $request->user();
+        $order = $this->ordersRepository->findItem($id, $user);
         $this->authorize('delete', $order);
 
-        $this->ordersRepository->deleteItem($id);
+        $this->ordersRepository->deleteItem($id, $user);
         return response()->json(null, 204);
     }
 
