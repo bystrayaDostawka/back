@@ -58,6 +58,11 @@ class Order extends Model
         return $this->hasMany(OrderPhoto::class);
     }
 
+    public function files()
+    {
+        return $this->hasMany(OrderFile::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

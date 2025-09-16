@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderStatusController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\OrderPhotoController;
+use App\Http\Controllers\Api\OrderFileController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\AuthController;
@@ -58,6 +59,13 @@ Route::middleware('auth:api')->group(function () {
 
     // Фотографии заказов (для админки)
     Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
+
+    // Файлы заказов (для всех кроме курьеров)
+    Route::get('orders/{order}/files', [OrderFileController::class, 'index']);
+    Route::post('orders/{order}/files', [OrderFileController::class, 'upload']);
+    Route::get('orders/{order}/files/{file}', [OrderFileController::class, 'show']);
+    Route::get('orders/{order}/files/{file}/download', [OrderFileController::class, 'download']);
+    Route::delete('orders/{order}/files/{file}', [OrderFileController::class, 'destroy']);
 });
 
 // Мобильные маршруты для курьеров

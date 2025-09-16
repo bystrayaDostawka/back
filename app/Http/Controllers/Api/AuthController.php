@@ -24,6 +24,11 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
+        // Проверка активности пользователя
+        if (!$user->is_active) {
+            return response()->json(['message' => 'Аккаунт деактивирован'], 403);
+        }
+
         // Запретить логин для курьера
         if ($user->role === 'courier') {
             return response()->json(['message' => 'Курьер не может войти в веб-админку'], 403);
@@ -66,6 +71,11 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+
+        // Проверка активности пользователя
+        if (!$user->is_active) {
+            return response()->json(['message' => 'Аккаунт деактивирован'], 403);
+        }
 
         // Разрешить логин только для курьеров в мобильном приложении
         if ($user->role !== 'courier') {

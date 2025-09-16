@@ -29,6 +29,11 @@ class MobileAuthController extends Controller
             return response()->json(['message' => 'Доступ разрешен только для курьеров'], 403);
         }
 
+        // Проверка активности пользователя
+        if (!$user->is_active) {
+            return response()->json(['message' => 'Аккаунт деактивирован'], 403);
+        }
+
         // Используем стандартный токен с увеличенным временем жизни (7 дней)
         $token = JWTAuth::fromUser($user);
 
