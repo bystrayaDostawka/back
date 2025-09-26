@@ -43,6 +43,7 @@
           "courier_id": {"type": "integer", "nullable": true},
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true},
+          "courier_note": {"type": "string", "nullable": true},
           "declined_reason": {"type": "string", "nullable": true},
           "created_at": {"type": "string", "format": "date-time"},
           "updated_at": {"type": "string", "format": "date-time"},
@@ -67,6 +68,7 @@
           "delivery_at": {"type": "string", "format": "date"},
           "courier_id": {"type": "integer", "nullable": true},
           "note": {"type": "string", "nullable": true},
+          "courier_note": {"type": "string", "nullable": true},
           "declined_reason": {"type": "string", "nullable": true}
         }
       },
@@ -86,6 +88,7 @@
           "courier_id": {"type": "integer", "nullable": true},
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true},
+          "courier_note": {"type": "string", "nullable": true},
           "declined_reason": {"type": "string", "nullable": true}
         }
       },
@@ -212,6 +215,12 @@
         "properties": {
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true}
+        }
+      },
+      "CourierNoteUpdate": {
+        "type": "object",
+        "properties": {
+          "courier_note": {"type": "string", "nullable": true, "maxLength": 1000, "description": "Заметка курьера (максимум 1000 символов)"}
         }
       },
       "LoginRequest": {
@@ -1024,6 +1033,66 @@
           },
           "403": {
             "description": "Доступ запрещен",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/orders/{id}/courier-note": {
+      "patch": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Обновить заметку курьера",
+        "description": "Обновление заметки курьера к заказу. Курьер может добавлять и редактировать заметки только к своим заказам.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CourierNoteUpdate"},
+              "example": {"courier_note": "Клиент не был дома, оставил уведомление о доставке"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Заметка курьера обновлена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "Заметка курьера обновлена"},
+                    "courier_note": {"type": "string", "nullable": true, "example": "Клиент не был дома, оставил уведомление о доставке"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (не курьер или заказ не принадлежит курьеру)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
             "content": {
               "application/json": {
                 "schema": {"$ref": "#/components/schemas/MessageResponse"}

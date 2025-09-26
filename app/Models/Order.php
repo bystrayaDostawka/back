@@ -25,6 +25,7 @@ class Order extends Model
         'courier_id',
         'order_status_id',
         'note',
+        'courier_note',
         'declined_reason',
         'order_number',
     ];
@@ -37,6 +38,7 @@ class Order extends Model
         'address' => 'encrypted',
         'product' => 'encrypted',
         'note' => 'encrypted',
+        'courier_note' => 'encrypted',
         'declined_reason' => 'encrypted',
     ];
 
@@ -79,6 +81,7 @@ class Order extends Model
                 'courier_id',
                 'order_status_id',
                 'note',
+                'courier_note',
                 'declined_reason',
                 'order_number',
             ])

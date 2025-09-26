@@ -77,6 +77,7 @@ Route::prefix('mobile')->middleware('auth:api')->group(function () {
     Route::get('orders', [OrderController::class, 'courierOrders']);
     Route::get('orders/{order}', [OrderController::class, 'courierOrderShow']);
     Route::patch('orders/{order}/status', [OrderController::class, 'courierUpdateStatus']);
+    Route::patch('orders/{order}/courier-note', [OrderController::class, 'updateCourierNote']);
     Route::get('order-statuses', [OrderStatusController::class, 'courierOrderStatuses']);
     Route::get('profile', [UserController::class, 'courierProfile']);
     Route::patch('profile', [UserController::class, 'courierUpdateProfile']);

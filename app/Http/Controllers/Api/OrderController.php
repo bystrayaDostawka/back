@@ -55,6 +55,7 @@ class OrderController extends Controller
             'delivery_at'     => 'required|date',
             'courier_id'      => 'nullable|exists:users,id',
             'note'            => 'nullable|string',
+            'courier_note'    => 'nullable|string',
             'declined_reason' => 'nullable|string',
         ]);
 
@@ -87,6 +88,7 @@ class OrderController extends Controller
             'courier_id'      => 'nullable|exists:users,id',
             'order_status_id' => 'required|exists:order_statuses,id',
             'note'            => 'nullable|string',
+            'courier_note'    => 'nullable|string',
             'declined_reason' => 'nullable|string',
         ]);
 
@@ -340,5 +342,33 @@ class OrderController extends Controller
 
         $order = $this->ordersRepository->updateItem($id, $data);
         return response()->json($order->load('photos'));
+    }
+
+    // Обновление заметки курьера
+    public function updateCourierNote(Request $request, $id)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = $this->ordersRepository->findItem($id);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $data = $request->validate([
+            'courier_note' => 'nullable|string|max:1000',
+        ]);
+
+        $order = $this->ordersRepository->updateItem($id, $data);
+        return response()->json([
+            'message' => 'Заметка курьера обновлена',
+            'courier_note' => $order->courier_note
+        ]);
     }
 }
