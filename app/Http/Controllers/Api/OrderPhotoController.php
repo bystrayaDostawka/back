@@ -30,12 +30,12 @@ class OrderPhotoController extends Controller
 
         // Валидация массива файлов
         $request->validate([
-            'photos[]' => 'required|array|min:1|max:10',
-            'photos[].*' => 'image|mimes:jpeg,png,jpg|max:5120',
+            'photos' => 'required|array|min:1|max:10',
+            'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         $uploadedPhotos = [];
-        $photosFiles = $request->file('photos[]');
+        $photosFiles = $request->file('photos');
 
         if (!$photosFiles) {
             return response()->json(['message' => 'Необходимо загрузить хотя бы одну фотографию'], 422);
