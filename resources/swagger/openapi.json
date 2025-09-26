@@ -1307,7 +1307,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "photos": {"type": "array", "items": {"type": "string", "format": "binary"}, "maxItems": 10, "description": "Фотографии документов (до 10 штук, jpeg, png, jpg, max 5MB каждая)"}
+                  "photos": {"type": "array", "items": {"type": "string", "format": "binary"}, "maxItems": 10, "description": "Фотографии документов (до 10 штук, jpeg, png, jpg, max 5MB каждая)"},
+                  "photos[]": {"type": "array", "items": {"type": "string", "format": "binary"}, "maxItems": 10, "description": "Фотографии документов (до 10 штук, jpeg, png, jpg, max 5MB каждая)"}
                 }
               }
             }
