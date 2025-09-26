@@ -1294,8 +1294,8 @@
     "/api/mobile/orders/{id}/photos": {
       "post": {
         "tags": ["Mobile App - Courier"],
-        "summary": "Загрузить фотографию заказа",
-        "description": "Загрузка фотографии документов курьером. Только для заказов, назначенных текущему курьеру.",
+        "summary": "Загрузить фотографии заказа",
+        "description": "Загрузка одной или нескольких фотографий документов курьером. Только для заказов, назначенных текущему курьеру. Можно загрузить до 10 фотографий за раз.",
         "security": [{"bearerAuth": []}],
         "parameters": [
           {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
@@ -1307,7 +1307,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "photo": {"type": "string", "format": "binary", "description": "Фотография документов (jpeg, png, jpg, max 5MB)"}
+                  "photo": {"type": "string", "format": "binary", "description": "Одна фотография документов (jpeg, png, jpg, max 5MB)"},
+                  "photos": {"type": "array", "items": {"type": "string", "format": "binary"}, "maxItems": 10, "description": "Массив фотографий документов (до 10 штук, jpeg, png, jpg, max 5MB каждая)"}
                 }
               }
             }
@@ -1315,15 +1316,24 @@
         },
         "responses": {
           "201": {
-            "description": "Фотография загружена",
+            "description": "Фотографии загружены",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {"type": "integer"},
-                    "url": {"type": "string"},
-                    "created_at": {"type": "string", "format": "date-time"}
+                    "message": {"type": "string", "example": "Фотография загружена"},
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "url": {"type": "string"},
+                          "created_at": {"type": "string", "format": "date-time"}
+                        }
+                      }
+                    }
                   }
                 }
               }

@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class OrderPhotoController extends Controller
 {
-    // Загрузка фотографии курьером (мобильное приложение)
+    // Загрузка фотографий курьером (мобильное приложение)
     public function upload(Request $request, $orderId)
     {
         $user = $request->user();
@@ -28,23 +28,60 @@ class OrderPhotoController extends Controller
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
+        // Поддерживаем как один файл, так и массив файлов
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+            'photo' => 'sometimes|image|mimes:jpeg,png,jpg|max:5120',
+            'photos' => 'sometimes|array|max:10',
+            'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
-        $file = $request->file('photo');
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('order-photos', $filename, 'public');
+        $uploadedPhotos = [];
 
-        $photo = OrderPhoto::create([
-            'order_id' => $orderId,
-            'file_path' => $path,
-        ]);
+        // Если передан один файл
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('order-photos', $filename, 'public');
+
+            $photo = OrderPhoto::create([
+                'order_id' => $orderId,
+                'file_path' => $path,
+            ]);
+
+            $uploadedPhotos[] = [
+                'id' => $photo->id,
+                'url' => $photo->url,
+                'created_at' => $photo->created_at,
+            ];
+        }
+
+        // Если передан массив файлов
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $file) {
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('order-photos', $filename, 'public');
+
+                $photo = OrderPhoto::create([
+                    'order_id' => $orderId,
+                    'file_path' => $path,
+                ]);
+
+                $uploadedPhotos[] = [
+                    'id' => $photo->id,
+                    'url' => $photo->url,
+                    'created_at' => $photo->created_at,
+                ];
+            }
+        }
+
+        // Проверяем, что хотя бы один файл был загружен
+        if (empty($uploadedPhotos)) {
+            return response()->json(['message' => 'Необходимо загрузить хотя бы одну фотографию'], 422);
+        }
 
         return response()->json([
-            'id' => $photo->id,
-            'url' => $photo->url,
-            'created_at' => $photo->created_at,
+            'message' => count($uploadedPhotos) === 1 ? 'Фотография загружена' : 'Фотографии загружены',
+            'photos' => $uploadedPhotos,
         ], 201);
     }
 
