@@ -75,7 +75,6 @@ class OrderController extends Controller
         $user = $request->user();
         $order = $this->ordersRepository->findItem($id, $user);
         $this->authorize('update', $order);
-        
         $validationRules = [
             'product'         => 'required|string|max:255',
             'name'            => 'required|string|max:255',
@@ -90,7 +89,6 @@ class OrderController extends Controller
             'courier_note'    => 'nullable|string',
             'declined_reason' => 'nullable|string',
         ];
-        
         // Для банковских пользователей bank_id и courier_id необязательны при редактировании
         if ($user->role !== 'bank') {
             $validationRules['bank_id'] = 'required|exists:banks,id';
@@ -99,7 +97,6 @@ class OrderController extends Controller
             $validationRules['bank_id'] = 'nullable|exists:banks,id';
             $validationRules['courier_id'] = 'nullable|exists:users,id';
         }
-        
         $data = $request->validate($validationRules);
 
         // Для банковских пользователей при редактировании не изменяем bank_id и courier_id
@@ -115,6 +112,15 @@ class OrderController extends Controller
             }
             if ($data['order_status_id'] == 5 && empty($data['delivery_at'])) {
                 return response()->json(['message' => 'Новая дата обязательна для переноса'], 422);
+            }
+        }
+
+        // Автоматическая смена статуса при назначении курьера
+        if (isset($data['courier_id']) && $data['courier_id']) {
+            $currentOrder = $this->ordersRepository->findItem($id);
+            // Если курьер назначается впервые (был null/пустой) и статус "Новые" (1)
+            if (!$currentOrder->courier_id && $currentOrder->order_status_id == 1) {
+                $data['order_status_id'] = 2; // "Принято в работу"
             }
         }
 
@@ -361,6 +367,39 @@ class OrderController extends Controller
         return response()->json($order->load('photos'));
     }
 
+    // Создание заметки курьера
+    public function createCourierNote(Request $request, $id)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = $this->ordersRepository->findItem($id);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        // Проверяем, что заметка еще не создана
+        if ($order->courier_note) {
+            return response()->json(['message' => 'Заметка курьера уже существует'], 409);
+        }
+
+        $data = $request->validate([
+            'courier_note' => 'required|string|max:1000',
+        ]);
+
+        $order = $this->ordersRepository->updateItem($id, $data);
+        return response()->json([
+            'message' => 'Заметка курьера создана',
+            'courier_note' => $order->courier_note
+        ], 201);
+    }
+
     // Обновление заметки курьера
     public function updateCourierNote(Request $request, $id)
     {
@@ -378,14 +417,47 @@ class OrderController extends Controller
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
+        // Проверяем, что заметка существует
+        if (!$order->courier_note) {
+            return response()->json(['message' => 'Заметка курьера не найдена'], 404);
+        }
+
         $data = $request->validate([
-            'courier_note' => 'nullable|string|max:1000',
+            'courier_note' => 'required|string|max:1000',
         ]);
 
         $order = $this->ordersRepository->updateItem($id, $data);
         return response()->json([
             'message' => 'Заметка курьера обновлена',
             'courier_note' => $order->courier_note
+        ]);
+    }
+
+    // Удаление заметки курьера
+    public function deleteCourierNote(Request $request, $id)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = $this->ordersRepository->findItem($id);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        // Проверяем, что заметка существует
+        if (!$order->courier_note) {
+            return response()->json(['message' => 'Заметка курьера не найдена'], 404);
+        }
+
+        $this->ordersRepository->updateItem($id, ['courier_note' => null]);
+        return response()->json([
+            'message' => 'Заметка курьера удалена'
         ]);
     }
 }

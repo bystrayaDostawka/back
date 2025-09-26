@@ -85,7 +85,7 @@
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
           "delivered_at": {"type": "string", "format": "date", "nullable": true},
-          "courier_id": {"type": "integer", "nullable": true},
+          "courier_id": {"type": "integer", "nullable": true, "description": "При назначении курьера в заявке со статусом 'Новые' автоматически меняется статус на 'Принято в работу'"},
           "order_status_id": {"type": "integer"},
           "note": {"type": "string", "nullable": true},
           "courier_note": {"type": "string", "nullable": true},
@@ -217,10 +217,18 @@
           "note": {"type": "string", "nullable": true}
         }
       },
+      "CourierNoteCreate": {
+        "type": "object",
+        "required": ["courier_note"],
+        "properties": {
+          "courier_note": {"type": "string", "maxLength": 1000, "description": "Заметка курьера (максимум 1000 символов)"}
+        }
+      },
       "CourierNoteUpdate": {
         "type": "object",
+        "required": ["courier_note"],
         "properties": {
-          "courier_note": {"type": "string", "nullable": true, "maxLength": 1000, "description": "Заметка курьера (максимум 1000 символов)"}
+          "courier_note": {"type": "string", "maxLength": 1000, "description": "Заметка курьера (максимум 1000 символов)"}
         }
       },
       "LoginRequest": {
@@ -747,6 +755,44 @@
         }
       }
     },
+    "/api/orders/{order}/photos/{photo}": {
+      "delete": {
+        "tags": ["Web Admin"],
+        "summary": "Удалить фотографию заказа",
+        "description": "Удаление фотографии заказа. Доступно для админов, менеджеров и банковских пользователей.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "photo", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID фотографии"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Фотография удалена",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (недостаточно прав)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ или фотография не найдены",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/login": {
       "post": {
         "tags": ["Mobile App - Courier"],
@@ -1051,10 +1097,76 @@
       }
     },
     "/api/mobile/orders/{id}/courier-note": {
+      "post": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Создать заметку курьера",
+        "description": "Создание заметки курьера к заказу. Курьер может создавать заметки только к своим заказам.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CourierNoteCreate"},
+              "example": {"courier_note": "Клиент не был дома, оставил уведомление о доставке"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Заметка курьера создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "Заметка курьера создана"},
+                    "courier_note": {"type": "string", "example": "Клиент не был дома, оставил уведомление о доставке"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (не курьер или заказ не принадлежит курьеру)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "409": {
+            "description": "Заметка курьера уже существует",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "tags": ["Mobile App - Courier"],
         "summary": "Обновить заметку курьера",
-        "description": "Обновление заметки курьера к заказу. Курьер может добавлять и редактировать заметки только к своим заказам.",
+        "description": "Обновление существующей заметки курьера к заказу. Курьер может редактировать только свои заметки.",
         "security": [{"bearerAuth": []}],
         "parameters": [
           {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
@@ -1077,7 +1189,7 @@
                   "type": "object",
                   "properties": {
                     "message": {"type": "string", "example": "Заметка курьера обновлена"},
-                    "courier_note": {"type": "string", "nullable": true, "example": "Клиент не был дома, оставил уведомление о доставке"}
+                    "courier_note": {"type": "string", "example": "Клиент не был дома, оставил уведомление о доставке"}
                   }
                 }
               }
@@ -1092,7 +1204,7 @@
             }
           },
           "404": {
-            "description": "Заказ не найден",
+            "description": "Заказ не найден или заметка курьера не найдена",
             "content": {
               "application/json": {
                 "schema": {"$ref": "#/components/schemas/MessageResponse"}
@@ -1101,6 +1213,46 @@
           },
           "422": {
             "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Удалить заметку курьера",
+        "description": "Удаление заметки курьера к заказу. Курьер может удалять только свои заметки.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Заметка курьера удалена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "Заметка курьера удалена"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен (не курьер или заказ не принадлежит курьеру)",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MessageResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "Заказ не найден или заметка курьера не найдена",
             "content": {
               "application/json": {
                 "schema": {"$ref": "#/components/schemas/MessageResponse"}

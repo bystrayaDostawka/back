@@ -64,21 +64,20 @@ class OrderPhotoController extends Controller
         }));
     }
 
-    // Удаление фотографии (только курьером)
+    // Удаление фотографии (курьером, админом или менеджером)
     public function destroy($orderId, $photoId)
     {
         $user = request()->user();
 
-        // Проверяем, что пользователь - курьер
-        if ($user->role !== 'courier') {
-            return response()->json(['message' => 'Доступ запрещён'], 403);
-        }
-
         $order = Order::findOrFail($orderId);
 
-        // Проверяем, что заказ принадлежит этому курьеру
-        if ($order->courier_id !== $user->id) {
+        // Проверяем права доступа
+        if ($user->role === 'courier' && $order->courier_id !== $user->id) {
             return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        if (!in_array($user->role, ['admin', 'manager', 'courier'])) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
         $photo = OrderPhoto::where('order_id', $orderId)->findOrFail($photoId);

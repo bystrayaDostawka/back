@@ -60,6 +60,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Фотографии заказов (для админки)
     Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
+    Route::delete('orders/{order}/photos/{photo}', [OrderPhotoController::class, 'destroy']);
 
     // Файлы заказов (для всех кроме курьеров)
     Route::get('orders/{order}/files', [OrderFileController::class, 'index']);
@@ -78,7 +79,9 @@ Route::prefix('mobile')->middleware('auth:api')->group(function () {
     Route::get('orders', [OrderController::class, 'courierOrders']);
     Route::get('orders/{order}', [OrderController::class, 'courierOrderShow']);
     Route::patch('orders/{order}/status', [OrderController::class, 'courierUpdateStatus']);
+    Route::post('orders/{order}/courier-note', [OrderController::class, 'createCourierNote']);
     Route::patch('orders/{order}/courier-note', [OrderController::class, 'updateCourierNote']);
+    Route::delete('orders/{order}/courier-note', [OrderController::class, 'deleteCourierNote']);
     Route::get('order-statuses', [OrderStatusController::class, 'courierOrderStatuses']);
     Route::get('profile', [UserController::class, 'courierProfile']);
     Route::patch('profile', [UserController::class, 'courierUpdateProfile']);
