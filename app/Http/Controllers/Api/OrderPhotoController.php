@@ -28,17 +28,14 @@ class OrderPhotoController extends Controller
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
-        // Валидация массива файлов (поддерживаем оба формата)
+        // Валидация массива файлов
         $request->validate([
-            'photos' => 'sometimes|array|min:1|max:10',
-            'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120',
-            'photos[]' => 'sometimes|array|min:1|max:10',
+            'photos[]' => 'required|array|min:1|max:10',
             'photos[].*' => 'image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         $uploadedPhotos = [];
-        // Пробуем получить файлы в разных форматах
-        $photosFiles = $request->file('photos') ?? $request->file('photos[]');
+        $photosFiles = $request->file('photos[]');
 
         if (!$photosFiles) {
             return response()->json(['message' => 'Необходимо загрузить хотя бы одну фотографию'], 422);
