@@ -56,6 +56,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('statistics/orders', [StatisticsController::class, 'getOrderStatistics']);
     Route::get('statistics/couriers', [StatisticsController::class, 'getCourierStatistics']);
     Route::get('statistics/dashboard', [StatisticsController::class, 'getDashboardStats']);
+    Route::get('statistics/bank-dashboard', [StatisticsController::class, 'getBankDashboardStats']);
 
     // Фотографии заказов (для админки)
     Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);

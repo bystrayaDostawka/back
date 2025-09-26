@@ -25,7 +25,9 @@ class User extends Authenticatable implements JWTSubject
                 'role',
                 'bank_id',
                 'is_active',
-                'note'
+                'note',
+                'bank_access_key',
+                'bank_key_expires_at'
             ])
             ->useLogName('user')
             ->logOnlyDirty()

@@ -11,11 +11,9 @@ class SwaggerUiServiceProvider extends ServiceProvider
     {
         Gate::define('viewSwaggerUI', function ($user = null) {
             // Если пользователь авторизован через JWT
-            if ($user && $user->email) {
-                return in_array($user->email, [
-                    'admin@test.ru',
-                    'manager@test.ru',
-                ]);
+            if ($user) {
+                // Доступ только для администраторов (роль admin или ID = 1)
+                return $user->role === 'admin' || $user->id === 1;
             }
 
             // Если нет авторизованного пользователя, разрешаем доступ

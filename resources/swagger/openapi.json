@@ -50,7 +50,7 @@
           "photos": {
             "type": "array",
             "items": {"$ref": "#/components/schemas/OrderPhoto"},
-            "description": "Фотографии посылки"
+            "description": "Фотографии документов"
           }
         }
       },
@@ -1143,7 +1143,7 @@
       "post": {
         "tags": ["Mobile App - Courier"],
         "summary": "Загрузить фотографию заказа",
-        "description": "Загрузка фотографии посылки курьером. Только для заказов, назначенных текущему курьеру.",
+        "description": "Загрузка фотографии документов курьером. Только для заказов, назначенных текущему курьеру.",
         "security": [{"bearerAuth": []}],
         "parameters": [
           {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
@@ -1155,7 +1155,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "photo": {"type": "string", "format": "binary", "description": "Фотография посылки (jpeg, png, jpg, max 5MB)"}
+                  "photo": {"type": "string", "format": "binary", "description": "Фотография документов (jpeg, png, jpg, max 5MB)"}
                 }
               }
             }
