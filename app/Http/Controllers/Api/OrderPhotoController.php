@@ -28,18 +28,23 @@ class OrderPhotoController extends Controller
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
-        // Поддерживаем как один файл, так и массив файлов
+        // Валидация массива файлов (поддерживаем оба формата)
         $request->validate([
-            'photo' => 'sometimes|image|mimes:jpeg,png,jpg|max:5120',
-            'photos' => 'sometimes|array|max:10',
+            'photos' => 'sometimes|array|min:1|max:10',
             'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120',
+            'photos[]' => 'sometimes|array|min:1|max:10',
+            'photos[].*' => 'image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         $uploadedPhotos = [];
+        // Пробуем получить файлы в разных форматах
+        $photosFiles = $request->file('photos') ?? $request->file('photos[]');
 
-        // Если передан один файл
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
+        if (!$photosFiles) {
+            return response()->json(['message' => 'Необходимо загрузить хотя бы одну фотографию'], 422);
+        }
+
+        foreach ($photosFiles as $file) {
             $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('order-photos', $filename, 'public');
 
@@ -55,29 +60,6 @@ class OrderPhotoController extends Controller
             ];
         }
 
-        // Если передан массив файлов
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $file) {
-                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('order-photos', $filename, 'public');
-
-                $photo = OrderPhoto::create([
-                    'order_id' => $orderId,
-                    'file_path' => $path,
-                ]);
-
-                $uploadedPhotos[] = [
-                    'id' => $photo->id,
-                    'url' => $photo->url,
-                    'created_at' => $photo->created_at,
-                ];
-            }
-        }
-
-        // Проверяем, что хотя бы один файл был загружен
-        if (empty($uploadedPhotos)) {
-            return response()->json(['message' => 'Необходимо загрузить хотя бы одну фотографию'], 422);
-        }
 
         return response()->json([
             'message' => count($uploadedPhotos) === 1 ? 'Фотография загружена' : 'Фотографии загружены',
