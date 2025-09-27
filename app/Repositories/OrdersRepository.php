@@ -3,12 +3,13 @@
 namespace App\Repositories;
 
 use App\Models\Order;
+use Illuminate\Support\Facades\Log;
 
 class OrdersRepository
 {
     public function getItems($user, $filters = [])
     {
-        $query = Order::with(['bank', 'courier', 'status', 'photos']);
+        $query = Order::with(['bank', 'courier', 'status', 'photos', 'comments']);
 
         if ($user->role === 'bank') {
             $query->where('bank_id', $user->bank_id);
@@ -35,8 +36,12 @@ class OrdersRepository
         if (!empty($filters['bank_id'])) {
             $query->where('bank_id', $filters['bank_id']);
         }
-        // Фильтр по статусу
-        if (!empty($filters['order_status_id'])) {
+        // Фильтр по статусу (поддержка множественного выбора)
+        if (!empty($filters['order_status_ids'])) {
+            // Если переданы множественные статусы
+            $query->whereIn('order_status_id', $filters['order_status_ids']);
+        } elseif (!empty($filters['order_status_id'])) {
+            // Если передан один статус (обратная совместимость)
             $query->where('order_status_id', $filters['order_status_id']);
         }
         // Фильтр по курьеру
@@ -72,7 +77,15 @@ class OrdersRepository
             $query->whereBetween('delivery_at', [$filters['date_from'], $filters['date_to']]);
         }
 
-        return $query->orderByDesc('id')->get();
+        $orders = $query->orderByDesc('id')->get();
+        
+        // Добавляем информацию о комментариях к каждому заказу
+        foreach ($orders as $order) {
+            $order->comments_count = $order->comments->count();
+            $order->uncompleted_comments_count = $order->comments->where('is_completed', false)->count();
+        }
+        
+        return $orders;
     }
 
     public function createItem(array $data)
@@ -85,7 +98,7 @@ class OrdersRepository
     public function findItem($id, $user = null)
     {
         $order = Order::with(['bank', 'courier', 'status', 'photos'])->findOrFail($id);
-        
+
         // Проверка прав доступа
         if ($user) {
             if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
@@ -95,14 +108,14 @@ class OrdersRepository
                 abort(403, 'Нет доступа к этому заказу');
             }
         }
-        
+
         return $order;
     }
 
     public function updateItem($id, array $data, $user = null)
     {
         $order = Order::findOrFail($id);
-        
+
         // Проверка прав доступа
         if ($user) {
             if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
@@ -112,15 +125,38 @@ class OrdersRepository
                 abort(403, 'Нет доступа к этому заказу');
             }
         }
-        
-        $order->update($data);
+
+        // Добавляем отладочную информацию
+        Log::info('OrdersRepository updateItem', [
+            'order_id' => $id,
+            'data' => $data,
+            'current_status' => $order->order_status_id,
+        ]);
+
+        // Специальная логика для статусов "Перенос" и "Отменено"
+        if (isset($data['order_status_id']) && in_array($data['order_status_id'], [5, 6])) {
+            if (isset($data['declined_reason'])) {
+                $order->declined_reason = $data['declined_reason'];
+                Log::info('Setting declined_reason', ['declined_reason' => $data['declined_reason']]);
+            }
+            if ($data['order_status_id'] == 5 && isset($data['delivery_at'])) {
+                $order->delivery_at = $data['delivery_at'];
+                Log::info('Setting delivery_at', ['delivery_at' => $data['delivery_at']]);
+            }
+            $order->order_status_id = $data['order_status_id'];
+            $order->save();
+        } else {
+            // Обычное обновление для других полей
+            $order->update($data);
+        }
+
         return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
     public function deleteItem($id, $user = null)
     {
         $order = Order::findOrFail($id);
-        
+
         // Проверка прав доступа
         if ($user) {
             if ($user->role === 'bank' && $order->bank_id !== $user->bank_id) {
@@ -130,7 +166,7 @@ class OrdersRepository
                 abort(403, 'Нет доступа к этому заказу');
             }
         }
-        
+
         return $order->delete();
     }
 

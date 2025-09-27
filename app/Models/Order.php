@@ -60,6 +60,11 @@ class Order extends Model
         return $this->hasMany(OrderPhoto::class);
     }
 
+    public function comments()
+    {
+        return $this->hasMany(OrderComment::class)->orderBy('created_at', 'desc');
+    }
+
     public function files()
     {
         return $this->hasMany(OrderFile::class);

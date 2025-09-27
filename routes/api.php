@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\OrderStatusController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\OrderPhotoController;
 use App\Http\Controllers\Api\OrderFileController;
+use App\Http\Controllers\Api\OrderCommentController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\AuthController;
@@ -68,6 +69,15 @@ Route::middleware('auth:api')->group(function () {
     Route::get('orders/{order}/files/{file}', [OrderFileController::class, 'show']);
     Route::get('orders/{order}/files/{file}/download', [OrderFileController::class, 'download']);
     Route::delete('orders/{order}/files/{file}', [OrderFileController::class, 'destroy']);
+
+        // Комментарии заказов (для админки)
+        Route::get('orders/{order}/comments', [OrderCommentController::class, 'index']);
+        Route::post('orders/{order}/comments', [OrderCommentController::class, 'store']);
+        Route::patch('orders/{order}/comments/{comment}', [OrderCommentController::class, 'update']);
+        Route::delete('orders/{order}/comments/{comment}', [OrderCommentController::class, 'destroy']);
+
+        // Все комментарии курьера (для мобильного приложения)
+        Route::get('courier/comments', [OrderCommentController::class, 'courierComments']);
 });
 
 // Мобильные маршруты для курьеров

@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use App\Imports\OrdersImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Order;
+use Illuminate\Support\Facades\Log;
 
 
 class OrderController extends Controller
@@ -27,10 +28,19 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+
+        // Обрабатываем множественные статусы
+        $orderStatusIds = $request->query('order_status_ids');
+        if (is_string($orderStatusIds)) {
+            // Если передан как строка (например, "1,2,3"), преобразуем в массив
+            $orderStatusIds = array_map('intval', explode(',', $orderStatusIds));
+        }
+
         $filters = [
             'search'          => $request->query('search'),
             'bank_id'         => $request->query('bank_id'),
-            'order_status_id' => $request->query('order_status_id'),
+            'order_status_id' => $request->query('order_status_id'), // Для обратной совместимости
+            'order_status_ids' => $orderStatusIds, // Новый параметр для множественного выбора
             'courier_id'      => $request->has('courier_id') ? $request->query('courier_id') : null,
             'delivery_at'     => $request->query('delivery_at'),
             'date_from'       => $request->query('date_from'),
@@ -99,6 +109,14 @@ class OrderController extends Controller
         }
         $data = $request->validate($validationRules);
 
+        // Добавляем отладочную информацию
+        Log::info('OrderController update', [
+            'order_id' => $id,
+            'validated_data' => $data,
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+        ]);
+
         // Для банковских пользователей при редактировании не изменяем bank_id и courier_id
         if ($user->role === 'bank') {
             unset($data['bank_id']);
@@ -107,6 +125,12 @@ class OrderController extends Controller
 
         // Проверка на Перенос или Отменено
         if (in_array($data['order_status_id'], [5, 6])) {
+            Log::info('Special status handling', [
+                'status_id' => $data['order_status_id'],
+                'declined_reason' => $data['declined_reason'] ?? 'not_set',
+                'delivery_at' => $data['delivery_at'] ?? 'not_set',
+            ]);
+
             if (empty($data['declined_reason'])) {
                 return response()->json(['message' => 'Причина отмены обязательна для выбранного статуса'], 422);
             }
@@ -302,10 +326,18 @@ class OrderController extends Controller
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
+        // Обрабатываем множественные статусы
+        $orderStatusIds = $request->query('order_status_ids');
+        if (is_string($orderStatusIds)) {
+            // Если передан как строка (например, "1,2,3"), преобразуем в массив
+            $orderStatusIds = array_map('intval', explode(',', $orderStatusIds));
+        }
+
         $filters = [
             'courier_id' => $user->id,
             'search' => $request->query('search'),
-            'order_status_id' => $request->query('order_status_id'),
+            'order_status_id' => $request->query('order_status_id'), // Для обратной совместимости
+            'order_status_ids' => $orderStatusIds, // Новый параметр для множественного выбора
             'delivery_at' => $request->query('delivery_at'),
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
@@ -354,9 +386,18 @@ class OrderController extends Controller
         $request->validate([
             'order_status_id' => 'required|exists:order_statuses,id',
             'note' => 'nullable|string',
+            'declined_reason' => 'nullable|string',
+            'delivery_at' => 'nullable|date',
         ]);
 
-        $data = $request->only(['order_status_id', 'note']);
+        $data = $request->only(['order_status_id', 'note', 'declined_reason', 'delivery_at']);
+
+        // Добавляем отладочную информацию
+        Log::info('OrderController courierUpdateStatus', [
+            'order_id' => $id,
+            'data' => $data,
+            'user_id' => $user->id,
+        ]);
 
         // Если статус "Завершено", устанавливаем дату доставки
         if ($data['order_status_id'] == 4) {
