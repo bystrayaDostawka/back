@@ -21,6 +21,7 @@ class Order extends Model
         'phone',
         'address',
         'delivery_at',
+        'delivery_time_range',
         'delivered_at',
         'courier_id',
         'order_status_id',

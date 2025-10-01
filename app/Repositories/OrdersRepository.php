@@ -9,7 +9,16 @@ class OrdersRepository
 {
     public function getItems($user, $filters = [])
     {
-        $query = Order::with(['bank', 'courier', 'status', 'photos', 'comments']);
+        $query = Order::with([
+            'bank',
+            'courier',
+            'status',
+            'photos',
+            'comments',
+            'files' => function ($query) {
+                $query->select('id', 'order_id', 'file_name', 'file_path', 'file_type', 'mime_type', 'file_size', 'uploaded_by', 'created_at');
+            }
+        ]);
 
         if ($user->role === 'bank') {
             $query->where('bank_id', $user->bank_id);
@@ -22,12 +31,12 @@ class OrdersRepository
         // Поиск (id, номер заказа, имя, фамилия, телефон) от 3 символов
         if (!empty($filters['search']) && mb_strlen($filters['search']) >= 3) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->orWhere('id', $search)
-                  ->orWhere('order_number', 'like', "%$search%")
-                  ->orWhere('name', 'like', "%$search%")
-                  ->orWhere('surname', 'like', "%$search%")
-                  ->orWhere('phone', 'like', "%$search%")
+                    ->orWhere('order_number', 'like', "%$search%")
+                    ->orWhere('name', 'like', "%$search%")
+                    ->orWhere('surname', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%")
                 ;
             });
         }
@@ -78,13 +87,13 @@ class OrdersRepository
         }
 
         $orders = $query->orderByDesc('id')->get();
-        
+
         // Добавляем информацию о комментариях к каждому заказу
         foreach ($orders as $order) {
             $order->comments_count = $order->comments->count();
             $order->uncompleted_comments_count = $order->comments->where('is_completed', false)->count();
         }
-        
+
         return $orders;
     }
 
@@ -97,7 +106,15 @@ class OrdersRepository
 
     public function findItem($id, $user = null)
     {
-        $order = Order::with(['bank', 'courier', 'status', 'photos'])->findOrFail($id);
+        $order = Order::with([
+            'bank',
+            'courier',
+            'status',
+            'photos',
+            'files' => function ($query) {
+                $query->select('id', 'order_id', 'file_name', 'file_path', 'file_type', 'mime_type', 'file_size', 'uploaded_by', 'created_at');
+            }
+        ])->findOrFail($id);
 
         // Проверка прав доступа
         if ($user) {

@@ -63,6 +63,7 @@ class OrderController extends Controller
             'phone'           => 'required|string|max:255',
             'address'         => 'required|string|max:255',
             'delivery_at'     => 'required|date',
+            'delivery_time_range' => 'nullable|string|in:10-14,12-16,14-18,16-20',
             'courier_id'      => 'nullable|exists:users,id',
             'note'            => 'nullable|string',
             'courier_note'    => 'nullable|string',
@@ -93,6 +94,7 @@ class OrderController extends Controller
             'phone'           => 'required|string|max:255',
             'address'         => 'required|string|max:255',
             'delivery_at'     => 'required|date',
+            'delivery_time_range' => 'nullable|string|in:10-14,12-16,14-18,16-20',
             'delivered_at'   => 'nullable|date',
             'order_status_id' => 'required|exists:order_statuses,id',
             'note'            => 'nullable|string',
@@ -362,8 +364,10 @@ class OrderController extends Controller
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
-        // Загружаем фотографии
-        $order->load('photos');
+        // Загружаем фотографии и файлы (анкеты)
+        $order->load(['photos', 'files' => function ($query) {
+            $query->select('id', 'order_id', 'file_name', 'file_path', 'file_type', 'mime_type', 'file_size', 'uploaded_by', 'created_at');
+        }]);
 
         return response()->json($order);
     }

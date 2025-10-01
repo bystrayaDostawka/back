@@ -39,6 +39,7 @@
           "phone": {"type": "string"},
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
+          "delivery_time_range": {"type": "string", "nullable": true, "enum": ["10-14", "12-16", "14-18", "16-20"], "description": "Временной диапазон доставки"},
           "delivered_at": {"type": "string", "format": "date", "nullable": true},
           "courier_id": {"type": "integer", "nullable": true},
           "order_status_id": {"type": "integer"},
@@ -51,6 +52,11 @@
             "type": "array",
             "items": {"$ref": "#/components/schemas/OrderPhoto"},
             "description": "Фотографии документов"
+          },
+          "files": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/OrderFile"},
+            "description": "Файлы анкет и документов"
           }
         }
       },
@@ -66,6 +72,7 @@
           "phone": {"type": "string"},
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
+          "delivery_time_range": {"type": "string", "nullable": true, "enum": ["10-14", "12-16", "14-18", "16-20"], "description": "Временной диапазон доставки"},
           "courier_id": {"type": "integer", "nullable": true},
           "note": {"type": "string", "nullable": true},
           "courier_note": {"type": "string", "nullable": true},
@@ -84,6 +91,7 @@
           "phone": {"type": "string"},
           "address": {"type": "string"},
           "delivery_at": {"type": "string", "format": "date"},
+          "delivery_time_range": {"type": "string", "nullable": true, "enum": ["10-14", "12-16", "14-18", "16-20"], "description": "Временной диапазон доставки"},
           "delivered_at": {"type": "string", "format": "date", "nullable": true},
           "courier_id": {"type": "integer", "nullable": true, "description": "При назначении курьера в заявке со статусом 'Новые' автоматически меняется статус на 'Принято в работу'"},
           "order_status_id": {"type": "integer"},
