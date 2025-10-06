@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OrderFileController extends Controller
@@ -154,18 +155,18 @@ class OrderFileController extends Controller
     // Скачивание всех файлов заказа в архиве
     public function downloadAll($orderId)
     {
-        \Log::info('OrderFileController::downloadAll called with orderId: ' . $orderId);
-        
+        Log::info('OrderFileController::downloadAll called with orderId: ' . $orderId);
+
         // Проверяем, что ZipArchive доступен
         if (!class_exists('ZipArchive')) {
-            \Log::error('ZipArchive not available');
+            Log::error('ZipArchive not available');
             return response()->json(['message' => 'ZipArchive не доступен на сервере'], 500);
         }
 
         $order = Order::findOrFail($orderId);
         $files = $order->files;
-        
-        \Log::info('Found ' . $files->count() . ' files for order ' . $orderId);
+
+        Log::info('Found ' . $files->count() . ' files for order ' . $orderId);
 
         if ($files->isEmpty()) {
             return response()->json(['message' => 'Файлы не найдены'], 404);
@@ -205,7 +206,7 @@ class OrderFileController extends Controller
     // Простой тестовый метод
     public function testDownload($orderId)
     {
-        \Log::info('OrderFileController::testDownload called with orderId: ' . $orderId);
+        Log::info('OrderFileController::testDownload called with orderId: ' . $orderId);
         return response()->json([
             'message' => 'Test method works',
             'orderId' => $orderId,
@@ -257,5 +258,105 @@ class OrderFileController extends Controller
         }
 
         return 'document';
+    }
+
+    // ========== МОБИЛЬНЫЕ МЕТОДЫ ДЛЯ КУРЬЕРОВ ==========
+
+    // Получение файлов заказа для курьера (мобильное приложение)
+    public function mobileIndex(Request $request, $orderId)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = Order::findOrFail($orderId);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $files = $order->files()->with('uploader:id,name')->orderBy('created_at', 'desc')->get();
+
+        return response()->json($files->map(function ($file) {
+            return [
+                'id' => $file->id,
+                'file_name' => $file->file_name,
+                'file_type' => $file->file_type,
+                'file_size' => $file->file_size,
+                'formatted_size' => $file->formatted_size,
+                'url' => $file->url,
+                'uploaded_by' => [
+                    'id' => $file->uploader->id,
+                    'name' => $file->uploader->name,
+                ],
+                'created_at' => $file->created_at,
+            ];
+        }));
+    }
+
+    // Получение информации о файле для курьера
+    public function mobileShow(Request $request, $orderId, $fileId)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = Order::findOrFail($orderId);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $file = $order->files()->with('uploader:id,name')->findOrFail($fileId);
+
+        return response()->json([
+            'id' => $file->id,
+            'file_name' => $file->file_name,
+            'file_type' => $file->file_type,
+            'file_size' => $file->file_size,
+            'formatted_size' => $file->formatted_size,
+            'url' => $file->url,
+            'uploaded_by' => [
+                'id' => $file->uploader->id,
+                'name' => $file->uploader->name,
+            ],
+            'created_at' => $file->created_at,
+            'updated_at' => $file->updated_at,
+        ]);
+    }
+
+    // Скачивание файла для курьера
+    public function mobileDownload(Request $request, $orderId, $fileId)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - курьер
+        if ($user->role !== 'courier') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $order = Order::findOrFail($orderId);
+
+        // Проверяем, что заказ принадлежит этому курьеру
+        if ($order->courier_id !== $user->id) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $file = $order->files()->findOrFail($fileId);
+
+        if (!Storage::disk('public')->exists($file->file_path)) {
+            return response()->json(['message' => 'Файл не найден'], 404);
+        }
+
+        $filePath = storage_path('app/public/' . $file->file_path);
+        return response()->download($filePath, $file->file_name);
     }
 }

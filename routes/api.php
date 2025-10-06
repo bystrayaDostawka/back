@@ -71,12 +71,12 @@ Route::middleware('auth:api')->group(function () {
     Route::get('orders/{order}/files/{file}', [OrderFileController::class, 'show']);
     Route::get('orders/{order}/files/{file}/download', [OrderFileController::class, 'download']);
     Route::delete('orders/{order}/files/{file}', [OrderFileController::class, 'destroy']);
-    
+
     // Тестовый маршрут для проверки
     Route::get('test-download/{orderId}', function($orderId) {
         return response()->json(['message' => 'Test route works', 'orderId' => $orderId]);
     });
-    
+
     // Тестовый маршрут для контроллера
     Route::get('orders/{order}/files/test', [OrderFileController::class, 'testDownload']);
 
@@ -110,4 +110,9 @@ Route::prefix('mobile')->middleware('auth:api')->group(function () {
     Route::post('orders/{order}/photos', [OrderPhotoController::class, 'upload']);
     Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
     Route::delete('orders/{order}/photos/{photo}', [OrderPhotoController::class, 'destroy']);
+
+    // Файлы заказов (только просмотр для курьеров)
+    Route::get('orders/{order}/files', [OrderFileController::class, 'mobileIndex']);
+    Route::get('orders/{order}/files/{file}', [OrderFileController::class, 'mobileShow']);
+    Route::get('orders/{order}/files/{file}/download', [OrderFileController::class, 'mobileDownload']);
 });
