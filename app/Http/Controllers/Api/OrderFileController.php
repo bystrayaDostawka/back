@@ -266,20 +266,25 @@ class OrderFileController extends Controller
     public function mobileIndex(Request $request, $orderId)
     {
         $user = $request->user();
+        Log::info("OrderFileController::mobileIndex - User ID: {$user->id}, Role: {$user->role}, Order ID: {$orderId}");
 
         // Проверяем, что пользователь - курьер
         if ($user->role !== 'courier') {
+            Log::warning("OrderFileController::mobileIndex - Access denied for user {$user->id} with role {$user->role}");
             return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
         $order = Order::findOrFail($orderId);
+        Log::info("OrderFileController::mobileIndex - Order courier_id: {$order->courier_id}, User ID: {$user->id}");
 
         // Проверяем, что заказ принадлежит этому курьеру
-        if ($order->courier_id !== $user->id) {
+        if ($order->courier_id != $user->id) {
+            Log::warning("OrderFileController::mobileIndex - Order {$orderId} does not belong to courier {$user->id}");
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
         $files = $order->files()->with('uploader:id,name')->orderBy('created_at', 'desc')->get();
+        Log::info("OrderFileController::mobileIndex - Found {$files->count()} files for order {$orderId}");
 
         return response()->json($files->map(function ($file) {
             return [
@@ -311,7 +316,7 @@ class OrderFileController extends Controller
         $order = Order::findOrFail($orderId);
 
         // Проверяем, что заказ принадлежит этому курьеру
-        if ($order->courier_id !== $user->id) {
+        if ($order->courier_id != $user->id) {
             return response()->json(['message' => 'Заказ не найден'], 404);
         }
 
