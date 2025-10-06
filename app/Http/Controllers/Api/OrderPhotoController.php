@@ -109,4 +109,52 @@ class OrderPhotoController extends Controller
 
         return response()->json(['message' => 'Фотография удалена']);
     }
+
+    // Скачивание всех фотографий заказа в архиве
+    public function downloadAll($orderId)
+    {
+        // Проверяем, что ZipArchive доступен
+        if (!class_exists('ZipArchive')) {
+            return response()->json(['message' => 'ZipArchive не доступен на сервере'], 500);
+        }
+
+        $order = Order::findOrFail($orderId);
+        $photos = $order->photos;
+
+        if ($photos->isEmpty()) {
+            return response()->json(['message' => 'Фотографии не найдены'], 404);
+        }
+
+        // Создаем временный ZIP архив
+        $zip = new \ZipArchive();
+        $zipFileName = 'temp_' . uniqid() . '.zip';
+        $zipPath = storage_path('app/temp/' . $zipFileName);
+
+        // Создаем директорию temp если её нет
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE) !== TRUE) {
+            return response()->json(['message' => 'Не удалось создать архив'], 500);
+        }
+
+        foreach ($photos as $index => $photo) {
+            if (Storage::disk('public')->exists($photo->file_path)) {
+                $filePath = storage_path('app/public/' . $photo->file_path);
+                $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                $fileName = 'photo_' . ($index + 1) . '.' . $extension;
+                $zip->addFile($filePath, $fileName);
+            }
+        }
+
+        $zip->close();
+
+        // Генерируем имя файла архива
+        $clientName = trim($order->surname . ' ' . $order->name . ' ' . $order->patronymic);
+        $today = now()->format('Y-m-d');
+        $archiveName = $clientName . '_' . $today . '_photos.zip';
+
+        return response()->download($zipPath, $archiveName)->deleteFileAfterSend(true);
+    }
 }

@@ -83,6 +83,11 @@ class OrderController extends Controller
 
     public function update(Request $request, $id)
     {
+        Log::info('OrderController update method called', [
+            'order_id' => $id,
+            'request_data' => $request->all()
+        ]);
+        
         $user = $request->user();
         $order = $this->ordersRepository->findItem($id, $user);
         $this->authorize('update', $order);
@@ -109,7 +114,15 @@ class OrderController extends Controller
             $validationRules['bank_id'] = 'nullable|exists:banks,id';
             $validationRules['courier_id'] = 'nullable|exists:users,id';
         }
-        $data = $request->validate($validationRules);
+        try {
+            $data = $request->validate($validationRules);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('OrderController validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            throw $e;
+        }
 
         // Добавляем отладочную информацию
         Log::info('OrderController update', [
@@ -118,6 +131,14 @@ class OrderController extends Controller
             'user_id' => $user->id,
             'user_role' => $user->role,
         ]);
+        
+        // Дополнительная отладка для bank_id
+        if (isset($data['bank_id'])) {
+            Log::info('Bank ID in update data', [
+                'bank_id' => $data['bank_id'],
+                'order_id' => $id
+            ]);
+        }
 
         // Для банковских пользователей при редактировании не изменяем bank_id и courier_id
         if ($user->role === 'bank') {

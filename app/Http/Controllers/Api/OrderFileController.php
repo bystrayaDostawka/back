@@ -151,6 +151,68 @@ class OrderFileController extends Controller
         ]);
     }
 
+    // Скачивание всех файлов заказа в архиве
+    public function downloadAll($orderId)
+    {
+        \Log::info('OrderFileController::downloadAll called with orderId: ' . $orderId);
+        
+        // Проверяем, что ZipArchive доступен
+        if (!class_exists('ZipArchive')) {
+            \Log::error('ZipArchive not available');
+            return response()->json(['message' => 'ZipArchive не доступен на сервере'], 500);
+        }
+
+        $order = Order::findOrFail($orderId);
+        $files = $order->files;
+        
+        \Log::info('Found ' . $files->count() . ' files for order ' . $orderId);
+
+        if ($files->isEmpty()) {
+            return response()->json(['message' => 'Файлы не найдены'], 404);
+        }
+
+        // Создаем временный ZIP архив
+        $zip = new \ZipArchive();
+        $zipFileName = 'temp_' . uniqid() . '.zip';
+        $zipPath = storage_path('app/temp/' . $zipFileName);
+
+        // Создаем директорию temp если её нет
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE) !== TRUE) {
+            return response()->json(['message' => 'Не удалось создать архив'], 500);
+        }
+
+        foreach ($files as $file) {
+            if (Storage::disk('public')->exists($file->file_path)) {
+                $filePath = storage_path('app/public/' . $file->file_path);
+                $zip->addFile($filePath, $file->file_name);
+            }
+        }
+
+        $zip->close();
+
+        // Генерируем имя файла архива
+        $clientName = trim($order->surname . ' ' . $order->name . ' ' . $order->patronymic);
+        $today = now()->format('Y-m-d');
+        $archiveName = $clientName . '_' . $today . '_files.zip';
+
+        return response()->download($zipPath, $archiveName)->deleteFileAfterSend(true);
+    }
+
+    // Простой тестовый метод
+    public function testDownload($orderId)
+    {
+        \Log::info('OrderFileController::testDownload called with orderId: ' . $orderId);
+        return response()->json([
+            'message' => 'Test method works',
+            'orderId' => $orderId,
+            'timestamp' => now()
+        ]);
+    }
+
     // Определение типа файла по MIME типу
     private function getFileType($mimeType)
     {

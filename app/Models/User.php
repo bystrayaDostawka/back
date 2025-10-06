@@ -88,6 +88,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(Bank::class, 'bank_id');
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'courier_id');
+    }
+
     /**
      * Generate a new bank access key with 1 month expiration
      */

@@ -116,11 +116,18 @@ class Order extends Model
      */
     public function generateOrderNumber()
     {
-        if (!$this->bank) {
+        if (!$this->bank_id) {
             return null;
         }
 
-        $prefix = $this->bank->order_prefix ?: substr($this->bank->name, 0, 2);
+        // Загружаем банк если он не загружен
+        $bank = $this->bank ?: Bank::find($this->bank_id);
+        
+        if (!$bank) {
+            return null;
+        }
+
+        $prefix = $bank->order_prefix ?: substr($bank->name, 0, 2);
         $prefix = strtoupper(preg_replace('/[^A-Za-zА-Яа-я]/', '', $prefix));
 
         // Получаем последний номер заказа для этого банка

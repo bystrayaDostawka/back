@@ -62,13 +62,23 @@ Route::middleware('auth:api')->group(function () {
     // Фотографии заказов (для админки)
     Route::get('orders/{order}/photos', [OrderPhotoController::class, 'index']);
     Route::delete('orders/{order}/photos/{photo}', [OrderPhotoController::class, 'destroy']);
+    Route::get('orders/{order}/photos/download-all', [OrderPhotoController::class, 'downloadAll']);
 
     // Файлы заказов (для всех кроме курьеров)
     Route::get('orders/{order}/files', [OrderFileController::class, 'index']);
     Route::post('orders/{order}/files', [OrderFileController::class, 'upload']);
+    Route::get('orders/{order}/files/download-all', [OrderFileController::class, 'downloadAll']);
     Route::get('orders/{order}/files/{file}', [OrderFileController::class, 'show']);
     Route::get('orders/{order}/files/{file}/download', [OrderFileController::class, 'download']);
     Route::delete('orders/{order}/files/{file}', [OrderFileController::class, 'destroy']);
+    
+    // Тестовый маршрут для проверки
+    Route::get('test-download/{orderId}', function($orderId) {
+        return response()->json(['message' => 'Test route works', 'orderId' => $orderId]);
+    });
+    
+    // Тестовый маршрут для контроллера
+    Route::get('orders/{order}/files/test', [OrderFileController::class, 'testDownload']);
 
         // Комментарии заказов (для админки)
         Route::get('orders/{order}/comments', [OrderCommentController::class, 'index']);

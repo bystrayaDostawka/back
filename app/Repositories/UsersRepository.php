@@ -34,6 +34,22 @@ class UsersRepository
             $data['password'] = Hash::make($data['password']);
         }
 
+        // Обработка даты истечения ключа банка
+        if (isset($data['bank_key_expires_at']) && !empty($data['bank_key_expires_at'])) {
+            try {
+                // Парсим дату в любом формате
+                $date = Carbon::parse($data['bank_key_expires_at']);
+                $data['bank_key_expires_at'] = $date->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                // Логируем ошибку и удаляем невалидную дату
+                \Log::warning('Invalid bank_key_expires_at format', [
+                    'value' => $data['bank_key_expires_at'],
+                    'error' => $e->getMessage()
+                ]);
+                unset($data['bank_key_expires_at']);
+            }
+        }
+
         $user = User::create($data);
         return $user->load('bank');
     }

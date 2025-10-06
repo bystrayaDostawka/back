@@ -99,8 +99,20 @@ class OrdersRepository
 
     public function createItem(array $data)
     {
+        Log::info('OrdersRepository createItem', [
+            'data' => $data,
+            'bank_id' => $data['bank_id'] ?? null,
+        ]);
+
         $data['order_status_id'] = 1;
         $order = Order::create($data);
+        
+        Log::info('Order created successfully', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'bank_id' => $order->bank_id,
+        ]);
+        
         return $order->load(['bank', 'courier', 'status', 'photos']);
     }
 
@@ -148,20 +160,21 @@ class OrdersRepository
             'order_id' => $id,
             'data' => $data,
             'current_status' => $order->order_status_id,
+            'current_bank_id' => $order->bank_id,
         ]);
 
         // Специальная логика для статусов "Перенос" и "Отменено"
         if (isset($data['order_status_id']) && in_array($data['order_status_id'], [5, 6])) {
+            // Для специальных статусов обновляем все поля, включая bank_id
+            $order->update($data);
+            
+            // Дополнительно логируем специальные поля
             if (isset($data['declined_reason'])) {
-                $order->declined_reason = $data['declined_reason'];
                 Log::info('Setting declined_reason', ['declined_reason' => $data['declined_reason']]);
             }
             if ($data['order_status_id'] == 5 && isset($data['delivery_at'])) {
-                $order->delivery_at = $data['delivery_at'];
                 Log::info('Setting delivery_at', ['delivery_at' => $data['delivery_at']]);
             }
-            $order->order_status_id = $data['order_status_id'];
-            $order->save();
         } else {
             // Обычное обновление для других полей
             $order->update($data);

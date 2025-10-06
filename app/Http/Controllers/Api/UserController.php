@@ -46,7 +46,7 @@ class UserController extends Controller
             'is_active' => 'boolean',
             'note'      => 'nullable|string',
             'bank_access_key' => 'nullable|string|max:255',
-            'bank_key_expires_at' => 'nullable|date_format:Y-m-d H:i:s',
+            'bank_key_expires_at' => 'nullable|date',
         ]);
 
         $user = $this->usersRepository->createItem($data);

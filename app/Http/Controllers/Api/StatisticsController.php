@@ -348,6 +348,9 @@ class StatisticsController extends Controller
             } else {
                 $this->applyDateFilterForCreated($periodQuery, $period);
             }
+        } else {
+            // Если "все время", показываем за последние 30 дней
+            $periodQuery->where('created_at', '>=', Carbon::now()->subDays(30));
         }
 
         $periodOrders = $periodQuery->count();
@@ -407,6 +410,119 @@ class StatisticsController extends Controller
         ];
 
         Log::info('Courier dashboard stats result', $result);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Получить статистику дашборда для банка
+     */
+    public function getBankDashboardStats(Request $request)
+    {
+        $user = $request->user();
+
+        // Проверяем, что пользователь - банк
+        if ($user->role !== 'bank') {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        // Проверяем, что у пользователя есть bank_id
+        if (!$user->bank_id) {
+            return response()->json(['message' => 'Банк не найден'], 404);
+        }
+
+        $period = $request->get('period', 'today'); // today, this_week, this_month, this_year, all
+        $from = $request->get('from');
+        $to = $request->get('to');
+
+        Log::info('Bank dashboard stats request', [
+            'bank_id' => $user->bank_id,
+            'period' => $period,
+            'from' => $from,
+            'to' => $to
+        ]);
+
+        // Создаем базовый запрос для заказов банка
+        $baseQuery = Order::where('bank_id', $user->bank_id);
+
+        // Общая статистика (все время)
+        $totalOrders = (clone $baseQuery)->count();
+        $completedOrders = (clone $baseQuery)->where('order_status_id', 4)->count(); // Завершено
+        $pendingOrders = (clone $baseQuery)->whereIn('order_status_id', [1, 2, 3])->count(); // Новые, Принято в работу, ждёт проверку
+        $cancelledOrders = (clone $baseQuery)->where('order_status_id', 6)->count(); // Отменено
+        $postponedOrders = (clone $baseQuery)->where('order_status_id', 5)->count(); // Перенос
+
+        // Статистика за выбранный период
+        $periodQuery = (clone $baseQuery);
+        if ($period !== 'all') {
+            if ($period === 'custom' && $from && $to) {
+                $periodQuery->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
+            } else {
+                $this->applyDateFilterForCreated($periodQuery, $period);
+            }
+        } else {
+            // Если "все время", показываем за последние 30 дней
+            $periodQuery->where('created_at', '>=', Carbon::now()->subDays(30));
+        }
+
+        $periodOrders = $periodQuery->count();
+        $periodCompleted = (clone $periodQuery)->where('order_status_id', 4)->count(); // Завершено
+        $periodCancelled = (clone $periodQuery)->where('order_status_id', 6)->count(); // Отменено
+        $periodPostponed = (clone $periodQuery)->where('order_status_id', 5)->count(); // Перенос
+        $periodPendingVerification = (clone $periodQuery)->where('order_status_id', 3)->count(); // Ждёт проверку
+        $periodInWork = (clone $periodQuery)->where('order_status_id', 2)->count(); // В работе
+
+        // Вычисляем процент выполнения за период
+        $activeOrders = $periodOrders - $periodCancelled;
+        $completionRate = $activeOrders > 0 ? round(($periodCompleted / $activeOrders) * 100) : 0;
+
+        // Статистика по статусам за период
+        $statusStats = [
+            'new' => (clone $periodQuery)->where('order_status_id', 1)->count(), // Новые
+            'in_work' => $periodInWork, // В работе
+            'pending_verification' => $periodPendingVerification, // Ждёт проверку
+            'completed' => $periodCompleted, // Выполнено
+            'postponed' => $periodPostponed, // Перенос
+            'cancelled' => $periodCancelled // Отменено
+        ];
+
+        $result = [
+            // Общая статистика
+            'total_orders' => $totalOrders,
+            'completed_orders' => $completedOrders,
+            'pending_orders' => $pendingOrders,
+            'cancelled_orders' => $cancelledOrders,
+            'postponed_orders' => $postponedOrders,
+
+            // Статистика за период
+            'period_orders' => $periodOrders,
+            'period_completed' => $periodCompleted,
+            'period_cancelled' => $periodCancelled,
+            'period_postponed' => $periodPostponed,
+            'period_pending_verification' => $periodPendingVerification,
+            'period_in_work' => $periodInWork,
+            'period_pending' => (clone $periodQuery)->whereIn('order_status_id', [1, 2, 3])->count(), // Новые, Принято в работу, ждёт проверку
+
+            // Процент выполнения
+            'completion_rate' => $completionRate,
+
+            // Детальная статистика по статусам
+            'status_stats' => $statusStats,
+
+            // Информация о банке
+            'bank' => [
+                'id' => $user->bank_id,
+                'name' => $user->bank ? $user->bank->name : 'Неизвестный банк'
+            ],
+            'bank_name' => $user->bank ? $user->bank->name : 'Неизвестный банк',
+
+            // Период
+            'period' => $period,
+            'period_from' => $from,
+            'period_to' => $to
+        ];
+
+        Log::info('Bank dashboard stats result', $result);
 
         return response()->json($result);
     }
