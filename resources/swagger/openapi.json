@@ -222,7 +222,10 @@
         "required": ["order_status_id"],
         "properties": {
           "order_status_id": {"type": "integer"},
-          "note": {"type": "string", "nullable": true}
+          "note": {"type": "string", "nullable": true},
+          "declined_reason": {"type": "string", "nullable": true},
+          "delivery_at": {"type": "string", "format": "date", "nullable": true},
+          "delivery_time_range": {"type": "string", "nullable": true, "enum": ["10-14", "12-16", "14-18", "16-20"], "description": "Временной диапазон доставки"}
         }
       },
       "CourierNoteCreate": {
@@ -264,11 +267,8 @@
         "type": "object",
         "properties": {
           "id": {"type": "integer"},
-          "order_id": {"type": "integer"},
-          "file_path": {"type": "string"},
           "url": {"type": "string"},
-          "created_at": {"type": "string", "format": "date-time"},
-          "updated_at": {"type": "string", "format": "date-time"}
+          "created_at": {"type": "string", "format": "date-time"}
         }
       },
       "OrderFile": {
@@ -281,14 +281,15 @@
           "file_size": {"type": "integer"},
           "formatted_size": {"type": "string"},
           "url": {"type": "string"},
-          "uploader": {
+          "uploaded_by": {
             "type": "object",
             "properties": {
               "id": {"type": "integer"},
               "name": {"type": "string"}
             }
           },
-          "created_at": {"type": "string", "format": "date-time"}
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time", "nullable": true}
         }
       },
       "CourierDashboardStats": {
@@ -731,14 +732,14 @@
         }
       }
     },
-    "/api/orders/{id}/photos": {
+    "/api/orders/{order}/photos": {
       "get": {
         "tags": ["Web Admin"],
         "summary": "Получить фотографии заказа",
         "description": "Получение всех фотографий заказа для просмотра в админке.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "responses": {
           "200": {
@@ -760,6 +761,22 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/orders/{order}/photos/download-all": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Скачать все фотографии заказа архивом",
+        "description": "Скачивание всех фотографий заказа в одном ZIP архиве.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {"description": "ZIP архив", "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Фотографии не найдены"},
+          "500": {"description": "ZipArchive не доступен"}
         }
       }
     },
@@ -914,6 +931,7 @@
         "parameters": [
           {"name": "search", "in": "query", "schema": {"type": "string"}, "description": "Поиск по имени клиента, адресу, телефону"},
           {"name": "order_status_id", "in": "query", "schema": {"type": "integer"}, "description": "Фильтр по статусу заказа"},
+          {"name": "order_status_ids", "in": "query", "schema": {"type": "string"}, "description": "Список статусов через запятую, например: 1,2,3", "example": "1,2,3"},
           {"name": "delivery_at", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Фильтр по дате доставки"},
           {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата начала периода"},
           {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date"}, "description": "Дата окончания периода"}
@@ -946,14 +964,14 @@
         }
       }
     },
-    "/api/mobile/orders/{id}": {
+    "/api/mobile/orders/{order}": {
       "get": {
         "tags": ["Mobile App - Courier"],
         "summary": "Получить детали заказа курьера",
         "description": "Получение детальной информации о заказе. Курьер может видеть только свои заказы.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "responses": {
           "200": {
@@ -983,21 +1001,21 @@
         }
       }
     },
-    "/api/mobile/orders/{id}/status": {
+    "/api/mobile/orders/{order}/status": {
       "patch": {
         "tags": ["Mobile App - Courier"],
         "summary": "Обновить статус заказа курьера",
         "description": "Обновление статуса заказа курьером. При установке статуса 'Завершено' автоматически устанавливается дата доставки.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {"$ref": "#/components/schemas/OrderStatusUpdateMobile"},
-              "example": {"order_status_id": 2, "note": "Заказ принят в работу"}
+              "example": {"order_status_id": 2, "note": "Заказ принят в работу", "delivery_time_range": "12-16"}
             }
           }
         },
@@ -1104,14 +1122,14 @@
         }
       }
     },
-    "/api/mobile/orders/{id}/courier-note": {
+    "/api/mobile/orders/{order}/courier-note": {
       "post": {
         "tags": ["Mobile App - Courier"],
         "summary": "Создать заметку курьера",
         "description": "Создание заметки курьера к заказу. Курьер может создавать заметки только к своим заказам.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "requestBody": {
           "required": true,
@@ -1177,7 +1195,7 @@
         "description": "Обновление существующей заметки курьера к заказу. Курьер может редактировать только свои заметки.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "requestBody": {
           "required": true,
@@ -1235,7 +1253,7 @@
         "description": "Удаление заметки курьера к заказу. Курьер может удалять только свои заметки.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "responses": {
           "200": {
@@ -1299,14 +1317,14 @@
         }
       }
     },
-    "/api/mobile/orders/{id}/photos": {
+    "/api/mobile/orders/{order}/photos": {
       "post": {
         "tags": ["Mobile App - Courier"],
         "summary": "Загрузить фотографии заказа",
         "description": "Загрузка одной или нескольких фотографий документов курьером. Только для заказов, назначенных текущему курьеру. Можно загрузить до 10 фотографий за раз.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "requestBody": {
           "required": true,
@@ -1379,7 +1397,7 @@
         "description": "Получение всех фотографий заказа курьером.",
         "security": [{"bearerAuth": []}],
         "parameters": [
-          {"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
         ],
         "responses": {
           "200": {
@@ -1599,6 +1617,22 @@
         }
       }
     },
+    "/api/orders/{order}/files/download-all": {
+      "get": {
+        "tags": ["Web Admin"],
+        "summary": "Скачать все файлы заказа архивом",
+        "description": "Скачивание всех файлов заказа в одном ZIP архиве.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {"description": "ZIP архив", "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}},
+          "404": {"description": "Файлы не найдены"},
+          "500": {"description": "ZipArchive не доступен"}
+        }
+      }
+    },
     "/api/orders/{order}/files/{file}": {
       "get": {
         "tags": ["Web Admin"],
@@ -1692,6 +1726,108 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/mobile/orders/{order}/files": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить файлы заказа (мобильное приложение)",
+        "description": "Получение всех файлов заказа курьером. Доступно только для своих заказов.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Список файлов заказа",
+            "content": {
+              "application/json": {
+                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/OrderFile"}},
+                "example": [
+                  {
+                    "id": 12,
+                    "file_name": "anketa.pdf",
+                    "file_type": "pdf",
+                    "file_size": 482337,
+                    "formatted_size": "471.0 KB",
+                    "url": "https://example.com/storage/order-files/uuid_anketa.pdf",
+                    "uploaded_by": { "id": 5, "name": "Manager" },
+                    "created_at": "2025-10-07T10:15:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "403": {"description": "Доступ запрещен", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}},
+          "404": {"description": "Заказ не найден", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}}
+        }
+      }
+    },
+    "/api/mobile/orders/{order}/files/{file}": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Получить информацию о файле заказа (мобильное приложение)",
+        "description": "Детальная информация о файле заказа для курьера.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "file", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о файле",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/OrderFile"},
+                "example": {
+                  "id": 12,
+                  "file_name": "anketa.pdf",
+                  "file_type": "pdf",
+                  "file_size": 482337,
+                  "formatted_size": "471.0 KB",
+                  "url": "https://example.com/storage/order-files/uuid_anketa.pdf",
+                  "uploaded_by": { "id": 5, "name": "Manager" },
+                  "created_at": "2025-10-07T10:15:00Z",
+                  "updated_at": "2025-10-07T10:20:30Z"
+                }
+              }
+            }
+          },
+          "403": {"description": "Доступ запрещен", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}},
+          "404": {"description": "Заказ или файл не найдены", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}}
+        }
+      }
+    },
+    "/api/mobile/orders/{order}/files/{file}/download": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Скачать файл заказа (мобильное приложение)",
+        "description": "Скачивание файла заказа курьером.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "order", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID заказа"},
+          {"name": "file", "in": "path", "required": true, "schema": {"type": "integer"}, "description": "ID файла"}
+        ],
+        "responses": {
+          "200": {"description": "Файл для скачивания", "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "403": {"description": "Доступ запрещен", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}},
+          "404": {"description": "Заказ или файл не найдены", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MessageResponse"}}}}
+        }
+      }
+    },
+    "/api/courier/comments": {
+      "get": {
+        "tags": ["Mobile App - Courier"],
+        "summary": "Все комментарии курьера",
+        "description": "Получение всех комментариев по заказам, назначенным текущему курьеру, с информацией о заказе и авторе комментария.",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Список комментариев",
+            "content": {"application/json": {"schema": {"type": "object", "properties": {"comments": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}, "uncompleted": {"type": "integer"}}}}}
+          },
+          "403": {"description": "Доступ запрещен"}
         }
       }
     }

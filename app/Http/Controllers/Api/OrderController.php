@@ -87,7 +87,7 @@ class OrderController extends Controller
             'order_id' => $id,
             'request_data' => $request->all()
         ]);
-        
+
         $user = $request->user();
         $order = $this->ordersRepository->findItem($id, $user);
         $this->authorize('update', $order);
@@ -131,7 +131,7 @@ class OrderController extends Controller
             'user_id' => $user->id,
             'user_role' => $user->role,
         ]);
-        
+
         // Дополнительная отладка для bank_id
         if (isset($data['bank_id'])) {
             Log::info('Bank ID in update data', [
@@ -413,9 +413,10 @@ class OrderController extends Controller
             'note' => 'nullable|string',
             'declined_reason' => 'nullable|string',
             'delivery_at' => 'nullable|date',
+            'delivery_time_range' => 'nullable|string|in:10-14,12-16,14-18,16-20',
         ]);
 
-        $data = $request->only(['order_status_id', 'note', 'declined_reason', 'delivery_at']);
+        $data = $request->only(['order_status_id', 'note', 'declined_reason', 'delivery_at', 'delivery_time_range']);
 
         // Добавляем отладочную информацию
         Log::info('OrderController courierUpdateStatus', [
