@@ -26,6 +26,7 @@ Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
 Route::post('mobile/logout', [MobileAuthController::class, 'logout'])->middleware('auth:api');
 Route::get('mobile/me', [MobileAuthController::class, 'me'])->middleware('auth:api');
+Route::post('mobile/push-token', [AuthController::class, 'updatePushToken'])->middleware('auth:api');
 
 // Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 //     return $request->user();

@@ -14,10 +14,13 @@ use App\Imports\OrdersImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Order;
 use Illuminate\Support\Facades\Log;
+use App\Traits\SendsOneSignalNotification;
 
 
 class OrderController extends Controller
 {
+    use SendsOneSignalNotification;
+
     protected OrdersRepository $ordersRepository;
 
     public function __construct(OrdersRepository $ordersRepository)
@@ -71,6 +74,22 @@ class OrderController extends Controller
         ]);
 
         $order = $this->ordersRepository->createItem($data);
+
+        // Отправка пуш-уведомления курьеру при создании заявки
+        if ($order->courier_id) {
+            $this->sendNotificationToUser(
+                $order->courier_id,
+                'Новая заявка',
+                "Вам назначена заявка #{$order->order_number}",
+                [
+                    'type' => 'order_assigned',
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                ]
+            );
+        }
+
         return response()->json($order, 201);
     }
 
@@ -172,6 +191,22 @@ class OrderController extends Controller
         }
 
         $order = $this->ordersRepository->updateItem($id, $data, $user);
+
+        // Отправка уведомления курьеру при назначении
+        if (isset($data['courier_id']) && $data['courier_id'] && $order->courier_id) {
+            $this->sendNotificationToUser(
+                $order->courier_id,
+                'Заявка назначена',
+                "Вам назначена заявка #{$order->order_number}",
+                [
+                    'type' => 'order_assigned',
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                ]
+            );
+        }
+
         return response()->json($order->load('photos'));
     }
 
@@ -431,6 +466,30 @@ class OrderController extends Controller
         }
 
         $order = $this->ordersRepository->updateItem($id, $data);
+
+        // Отправка уведомления в админку при смене статуса на "Ждёт проверку" (ID: 3)
+        if ($data['order_status_id'] == 3) {
+            // Получаем всех админов и менеджеров для отправки уведомления
+            $admins = User::whereIn('role', ['admin', 'manager'])
+                ->whereNotNull('onesignal_player_id')
+                ->pluck('onesignal_player_id')
+                ->toArray();
+
+            if (!empty($admins)) {
+                $this->sendPushNotification(
+                    $admins,
+                    'Заявка ждёт проверку',
+                    "Заявка #{$order->order_number} готова к проверке",
+                    [
+                        'type' => 'order_pending_verification',
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'status' => 'pending_verification',
+                    ]
+                );
+            }
+        }
+
         return response()->json($order->load('photos'));
     }
 

@@ -35,7 +35,7 @@ class AuthController extends Controller
         }
 
         // Проверка банковского ключа для банковских пользователей
-        if ($user->hasRole('bank')) {
+        if ($user->role === 'bank') {
             $bankKey = $request->input('bank_access_key');
 
             if (!$bankKey) {
@@ -64,6 +64,7 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+            'onesignal_player_id' => 'nullable|string',
         ]);
 
         if (!$token = JWTAuth::attempt($credentials)) {
@@ -80,6 +81,12 @@ class AuthController extends Controller
         // Разрешить логин только для курьеров в мобильном приложении
         if ($user->role !== 'courier') {
             return response()->json(['message' => 'Доступ разрешен только для курьеров'], 403);
+        }
+
+        // Сохранение OneSignal Player ID
+        if ($request->has('onesignal_player_id')) {
+            $user->onesignal_player_id = $request->input('onesignal_player_id');
+            $user->save();
         }
 
         return response()->json([
@@ -109,5 +116,24 @@ class AuthController extends Controller
         } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
             return response()->json(['message' => 'Неверный токен'], 401);
         }
+    }
+
+    /**
+     * Обновление OneSignal Player ID для текущего пользователя
+     */
+    public function updatePushToken(Request $request)
+    {
+        $request->validate([
+            'player_id' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        $user->onesignal_player_id = $request->input('player_id');
+        $user->save();
+
+        return response()->json([
+            'message' => 'Player ID успешно обновлен',
+            'player_id' => $user->onesignal_player_id,
+        ]);
     }
 }

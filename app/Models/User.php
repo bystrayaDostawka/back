@@ -27,7 +27,8 @@ class User extends Authenticatable implements JWTSubject
                 'is_active',
                 'note',
                 'bank_access_key',
-                'bank_key_expires_at'
+                'bank_key_expires_at',
+                'onesignal_player_id'
             ])
             ->useLogName('user')
             ->logOnlyDirty()
@@ -70,6 +71,7 @@ class User extends Authenticatable implements JWTSubject
         'note',
         'bank_access_key',
         'bank_key_expires_at',
+        'onesignal_player_id',
     ];
 
     protected $hidden = [
