@@ -112,6 +112,19 @@ class Order extends Model
     }
 
     /**
+     * Переопределяем метод delete для очистки записей активности
+     */
+    public function delete()
+    {
+        // Удаляем все записи активности для этого заказа
+        \Spatie\Activitylog\Models\Activity::where('log_name', 'order')
+            ->where('subject_id', $this->id)
+            ->delete();
+            
+        return parent::delete();
+    }
+
+    /**
      * Генерирует уникальный номер заказа для банка
      */
     public function generateOrderNumber()

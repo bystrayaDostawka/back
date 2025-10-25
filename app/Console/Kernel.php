@@ -13,6 +13,13 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+        
+        // Ежедневная очистка "осиротевших" записей активности
+        $schedule->command('activity-log:cleanup-orphaned --force')
+            ->daily()
+            ->at('02:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

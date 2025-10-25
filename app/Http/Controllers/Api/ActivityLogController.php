@@ -19,8 +19,11 @@ class ActivityLogController extends Controller
 
         $cacheKey = 'activity_logs_' . $logName . '_' . md5(json_encode($ids));
         $result = cache()->remember($cacheKey, 30, function () use ($logName, $ids) {
+            // Проверяем, что все ID существуют в соответствующих таблицах
+            $validIds = $this->getValidSubjectIds($logName, $ids);
+            
             $logs = Activity::where('log_name', $logName)
-                ->whereIn('subject_id', $ids)
+                ->whereIn('subject_id', $validIds)
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->groupBy('subject_id');
@@ -52,6 +55,22 @@ class ActivityLogController extends Controller
         });
 
         return response()->json($result);
+    }
+
+    protected function getValidSubjectIds($logName, $ids)
+    {
+        switch ($logName) {
+            case 'order':
+                return \App\Models\Order::whereIn('id', $ids)->pluck('id')->toArray();
+            case 'bank':
+                return \App\Models\Bank::whereIn('id', $ids)->pluck('id')->toArray();
+            case 'order_status':
+                return \App\Models\OrderStatus::whereIn('id', $ids)->pluck('id')->toArray();
+            case 'user':
+                return \App\Models\User::whereIn('id', $ids)->pluck('id')->toArray();
+            default:
+                return $ids; // Если тип не определен, возвращаем как есть
+        }
     }
 
     protected function getFieldLabel($logName, $key)
