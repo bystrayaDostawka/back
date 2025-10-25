@@ -22,6 +22,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Неверный логин или пароль'], 401);
         }
 
+        /** @var User $user */
         $user = Auth::user();
 
         // Проверка активности пользователя
@@ -71,6 +72,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Неверный логин или пароль'], 401);
         }
 
+        /** @var User $user */
         $user = Auth::user();
 
         // Проверка активности пользователя
@@ -127,6 +129,7 @@ class AuthController extends Controller
             'player_id' => 'required|string',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
         $user->onesignal_player_id = $request->input('player_id');
         $user->save();
