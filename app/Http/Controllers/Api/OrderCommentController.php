@@ -7,9 +7,11 @@ use App\Models\Order;
 use App\Models\OrderComment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\SendsOneSignalNotification;
 
 class OrderCommentController extends Controller
 {
+    use SendsOneSignalNotification;
     /**
      * Получить все комментарии курьера
      */
@@ -126,6 +128,22 @@ class OrderCommentController extends Controller
         ]);
 
         $comment->load('user');
+
+        // Отправка пуш-уведомления водителю при новом комментарии (если комментарий не от водителя)
+        /** @var Order $order */
+        if ($order->courier_id && $user->role !== 'courier') {
+            $this->sendNotificationToUser(
+                $order->courier_id,
+                'Новый комментарий, заявка #' . $order->order_number,
+                $request->comment,
+                [
+                    'type' => 'new_comment',
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'comment_id' => $comment->id,
+                ]
+            );
+        }
 
         return response()->json([
             'message' => 'Комментарий добавлен',

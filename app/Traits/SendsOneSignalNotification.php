@@ -61,8 +61,8 @@ trait SendsOneSignalNotification
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-                'Authorization' => "Basic {$restApiKey}",
-            ])->post('https://onesignal.com/api/v1/notifications', [
+                'Authorization' => "Bearer {$restApiKey}",
+            ])->post("https://onesignal.com/api/v1/notifications", [
                 'app_id' => $appId,
                 'include_player_ids' => $playerIds,
                 'headings' => ['en' => $heading],
