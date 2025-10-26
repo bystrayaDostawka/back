@@ -147,10 +147,10 @@ class AuthController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        
+
         // Заглушка для уведомлений
         // TODO: Реализовать логику получения уведомлений из БД
-        
+
         return response()->json([
             'notifications' => [],
         ]);
