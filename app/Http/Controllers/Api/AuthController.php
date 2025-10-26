@@ -139,4 +139,20 @@ class AuthController extends Controller
             'player_id' => $user->onesignal_player_id,
         ]);
     }
+
+    /**
+     * Получить уведомления для текущего пользователя
+     */
+    public function getNotifications(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        
+        // Заглушка для уведомлений
+        // TODO: Реализовать логику получения уведомлений из БД
+        
+        return response()->json([
+            'notifications' => [],
+        ]);
+    }
 }
