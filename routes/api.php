@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\OrderPhotoController;
 use App\Http\Controllers\Api\OrderFileController;
 use App\Http\Controllers\Api\OrderCommentController;
+use App\Http\Controllers\Api\AgentReportController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\AuthController;
@@ -21,7 +22,7 @@ Route::post('mobile/login', [MobileAuthController::class, 'login']);
 // Добавляем GET маршрут login для обработки ошибок аутентификации
 Route::get('login', function () {
     return response()->json(['message' => 'Unauthorized'], 401);
-})->name('login');
+})->name('api.login');
 Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api');
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
 Route::post('mobile/logout', [MobileAuthController::class, 'logout'])->middleware('auth:api');
@@ -90,6 +91,12 @@ Route::middleware('auth:api')->group(function () {
 
         // Все комментарии курьера (для мобильного приложения)
         Route::get('courier/comments', [OrderCommentController::class, 'courierComments']);
+
+    // Акт-отчеты агента (только для admin)
+    // Важно: orders-for-period должен быть ПЕРЕД apiResource, иначе будет конфликт
+    Route::get('agent-reports/orders-for-period', [AgentReportController::class, 'getOrdersForPeriod']);
+    Route::get('agent-reports/{agent_report}/download', [AgentReportController::class, 'download']);
+    Route::apiResource('agent-reports', AgentReportController::class);
 });
 
 // Мобильные маршруты для курьеров
