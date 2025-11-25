@@ -90,9 +90,6 @@ class AgentReport extends Model
         };
     }
 
-    /**
-     * Пересчитать общую стоимость доставки на основе связанных заказов
-     */
     public function recalculateTotalCost()
     {
         $total = $this->reportOrders()->sum('delivery_cost');

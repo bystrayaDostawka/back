@@ -31,4 +31,3 @@ class AgentReportOrder extends Model
 }
 
 
-

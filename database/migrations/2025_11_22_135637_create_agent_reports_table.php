@@ -30,6 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('agent_reports');
     }
 };
-
-
-

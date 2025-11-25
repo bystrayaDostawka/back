@@ -8,6 +8,7 @@ use App\Exports\AgentReportExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\AgentReport;
 
 class AgentReportController extends Controller
 {
@@ -20,7 +21,7 @@ class AgentReportController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', \App\Models\AgentReport::class);
+        $this->authorize('viewAny', AgentReport::class);
 
         $filters = [
             'bank_id' => $request->query('bank_id'),
@@ -37,7 +38,7 @@ class AgentReportController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('create', \App\Models\AgentReport::class);
+        $this->authorize('create', AgentReport::class);
 
         $data = $request->validate([
             'bank_ids' => 'required|array|min:1',
@@ -53,16 +54,7 @@ class AgentReportController extends Controller
 
         $report = $this->repository->createItem($data, $request->user()->id);
 
-        // Генерируем Excel файл
-        try {
-            $this->generateExcelFile($report);
-        } catch (\Exception $e) {
-            \Log::error('Ошибка при генерации Excel файла для акта-отчета', [
-                'report_id' => $report->id,
-                'error' => $e->getMessage(),
-            ]);
-            // Не прерываем создание акта, файл можно сгенерировать позже
-        }
+        $this->generateExcelFile($report);
 
         return response()->json($report->load(['banks', 'creator', 'reportOrders.order']), 201);
     }
@@ -71,7 +63,7 @@ class AgentReportController extends Controller
     {
         $report = $this->repository->findItem($agent_report);
         $this->authorize('view', $report);
-        // Загружаем связи для фронтенда
+
         $report->load(['banks', 'creator', 'reportOrders.order.bank', 'reportOrders.order.courier', 'reportOrders.order.status']);
         return response()->json($report);
     }
@@ -94,7 +86,6 @@ class AgentReportController extends Controller
             'orders.*.delivery_cost' => 'required_with:orders|numeric|min:0',
         ]);
 
-        // Сохраняем путь к старому файлу для удаления
         $oldFilePath = $report->excel_file_path;
 
         $shouldRegenerateExcel = isset($data['delivery_cost'])
@@ -105,9 +96,8 @@ class AgentReportController extends Controller
 
         $report = $this->repository->updateItem($agent_report, $data);
 
-        // Если изменились ключевые данные, перегенерируем Excel
         if ($shouldRegenerateExcel) {
-            // Удаляем старый файл если существует
+
             if ($oldFilePath && Storage::exists($oldFilePath)) {
                 Storage::delete($oldFilePath);
             }
@@ -122,7 +112,6 @@ class AgentReportController extends Controller
         $report = $this->repository->findItem($agent_report);
         $this->authorize('delete', $report);
 
-        // Удаляем Excel файл если существует
         if ($report->excel_file_path && Storage::exists($report->excel_file_path)) {
             Storage::delete($report->excel_file_path);
         }
@@ -131,15 +120,11 @@ class AgentReportController extends Controller
         return response()->json(null, 204);
     }
 
-    /**
-     * Скачать Excel файл акта-отчета
-     */
     public function download($agent_report)
     {
         $report = $this->repository->findItem($agent_report);
         $this->authorize('view', $report);
 
-        // Всегда генерируем актуальный файл
         if ($report->excel_file_path && Storage::exists($report->excel_file_path)) {
             Storage::delete($report->excel_file_path);
         }
@@ -154,12 +139,10 @@ class AgentReportController extends Controller
         return response()->download($filePath, $fileName);
     }
 
-    /**
-     * Получить заказы за период для предзаполнения формы
-     */
+
     public function getOrdersForPeriod(Request $request)
     {
-        $this->authorize('create', \App\Models\AgentReport::class);
+        $this->authorize('create', AgentReport::class);
 
         $data = $request->validate([
             'bank_ids' => 'required|array|min:1',
@@ -177,24 +160,18 @@ class AgentReportController extends Controller
         return response()->json($orders);
     }
 
-    /**
-     * Генерировать Excel файл для акта-отчета
-     */
     protected function generateExcelFile($report)
     {
-        // Создаем директорию если не существует
         $directory = 'agent-reports';
         if (!Storage::exists($directory)) {
             Storage::makeDirectory($directory);
         }
 
-        // Генерируем файл
         $fileName = 'agent_report_' . $report->id . '_' . time() . '.xlsx';
         $filePath = $directory . '/' . $fileName;
 
         Excel::store(new AgentReportExport($report), $filePath);
 
-        // Обновляем путь к файлу в базе
         $report->excel_file_path = $filePath;
         $report->save();
 
