@@ -64,7 +64,7 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
         $dateFormatted = $date ? Carbon::parse($date)->format('d.m.Y') : '';
 
         return [
-            '', // № заполнится отдельно
+            '',
             $order?->order_number ?? '',
             $order?->bank?->name ?? '',
             $order?->product ?? '',
@@ -84,15 +84,15 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
     public function columnWidths(): array
     {
         return [
-            'A' => 6,   // №
-            'B' => 18,  // Номер заказа
-            'C' => 18,  // Банк
-            'D' => 22,  // Продукт
-            'E' => 28,  // Клиент
-            'F' => 35,  // Адрес
-            'G' => 18,  // Дата доставки
-            'H' => 20,  // Курьер
-            'I' => 22,  // Стоимость доставки
+            'A' => 6,
+            'B' => 18,
+            'C' => 18,
+            'D' => 22,
+            'E' => 28,
+            'F' => 35,
+            'G' => 18,
+            'H' => 20,
+            'I' => 22,
         ];
     }
 
@@ -105,7 +105,6 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
         $totalRow = $lastDataRow + 1;
         $summaryRow = $totalRow + 2;
 
-        // Стили для заголовка документа
         $sheet->mergeCells('A1:I1');
         $sheet->setCellValue('A1', 'АКТ-ОТЧЕТ АГЕНТА');
         $sheet->getStyle('A1')->applyFromArray([
@@ -119,13 +118,10 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             ],
         ]);
 
-        // Информация о периоде
         $sheet->setCellValue('A2', 'Период: с ' . $this->report->period_from->format('d.m.Y') . ' по ' . $this->report->period_to->format('d.m.Y'));
         $sheet->mergeCells('A2:I2');
         $sheet->getStyle('A2')->getFont()->setSize(12);
 
-        // Заголовки таблицы
-        // Заголовки таблицы
         $sheet->fromArray([$this->tableHeadings()], null, 'A' . $headerRow);
         $sheet->getStyle('A' . $headerRow . ':I' . $headerRow)->applyFromArray([
             'font' => [
@@ -142,7 +138,6 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             ],
         ]);
 
-        // Стили для данных
         if ($dataRowsCount > 0) {
             $dataRange = 'A' . $firstDataRow . ':I' . $lastDataRow;
             $sheet->getStyle($dataRange)->applyFromArray([
@@ -157,7 +152,6 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             ]);
         }
 
-        // Заполняем № п/п
         $row = $firstDataRow;
         $num = 1;
         foreach ($this->report->reportOrders as $reportOrder) {
@@ -167,10 +161,13 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             $num++;
         }
 
-        // Итоговая строка
         $sheet->mergeCells('A' . $totalRow . ':H' . $totalRow);
         $sheet->setCellValue('A' . $totalRow, 'ИТОГО:');
-        $sheet->setCellValue('I' . $totalRow, number_format($this->report->delivery_cost, 2, '.', ' ') . ' руб.');
+        if ($dataRowsCount > 0) {
+            $sheet->setCellValue('I' . $totalRow, '=SUM(I' . $firstDataRow . ':I' . $lastDataRow . ')');
+        } else {
+            $sheet->setCellValue('I' . $totalRow, '0');
+        }
         
         $sheet->getStyle('A' . $totalRow . ':I' . $totalRow)->applyFromArray([
             'font' => ['bold' => true],
@@ -185,9 +182,12 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             ],
         ]);
 
-        // Блок «Итого стоимость доставки»
         $sheet->mergeCells('A' . $summaryRow . ':I' . ($summaryRow + 1));
-        $sheet->setCellValue('A' . $summaryRow, 'Итого стоимость доставки: ' . number_format($this->report->delivery_cost, 2, '.', ' ') . ' руб.');
+        if ($dataRowsCount > 0) {
+            $sheet->setCellValue('A' . $summaryRow, '="Итого стоимость доставки: " & I' . $totalRow . ' & " руб."');
+        } else {
+            $sheet->setCellValue('A' . $summaryRow, 'Итого стоимость доставки: 0,00 руб.');
+        }
         $sheet->getStyle('A' . $summaryRow . ':I' . ($summaryRow + 1))->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -208,13 +208,15 @@ class AgentReportExport implements FromCollection, WithTitle, WithStyles, WithCo
             ],
         ]);
 
-        // Выравнивание колонок
         $sheet->getStyle('A' . $firstDataRow . ':A' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('G' . $firstDataRow . ':G' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('I' . $firstDataRow . ':I' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         $sheet->getStyle('I' . $firstDataRow . ':I' . $lastDataRow)->getNumberFormat()->setFormatCode('#,##0.00');
 
-        // Перенос текста для длинных полей
+        if ($dataRowsCount > 0) {
+            $sheet->getStyle('I' . $totalRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+
         $sheet->getStyle('D' . $firstDataRow . ':F' . $lastDataRow)->getAlignment()->setWrapText(true);
 
         return [];
